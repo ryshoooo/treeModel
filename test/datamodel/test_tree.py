@@ -93,3 +93,16 @@ class TestNode(TestCase):
 
         self.assertEqual(single_fork.name, single_fork.get_name())
         self.assertEqual(single_leaf.name, single_leaf.get_name())
+
+    def test_get_data_type(self):
+        single_fork = self.get_fork_node()
+        single_leaf = self.get_single_float_leaf()
+
+        try:
+            single_fork.get_data_type()
+        except Exception as e:
+            self.assertTrue(isinstance(e, AttributeError))
+            self.assertEqual(str(e), "Cannot get data type from a fork!")
+
+        dtp = single_leaf.get_data_type()
+        self.assertTrue(isinstance(dtp, FloatDataType))
