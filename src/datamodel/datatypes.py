@@ -8,10 +8,10 @@ class TreeDataType(object):
     """
 
     def __init__(self, numpy_dtype, python_dtype, numpy_na_value, python_na_value):
-        self.numpy_dtype = None
-        self.python_dtype = None
-        self.numpy_na_value = None
-        self.python_na_value = None
+        self.numpy_dtype = numpy_dtype
+        self.python_dtype = python_dtype
+        self.numpy_na_value = numpy_na_value
+        self.python_na_value = python_na_value
 
     def is_nullable(self):
         return self.python_na_value is None or self.numpy_na_value
