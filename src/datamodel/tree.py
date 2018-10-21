@@ -5,7 +5,7 @@ Base module for tree input data
 import collections
 import numpy as np
 
-from .datatypes import TreeDataType
+from .datatypes import DataType, ListDataType
 
 
 class Node(object):
@@ -27,20 +27,23 @@ class Node(object):
         Simple method to determine whether the node is a leaf.
         :return: Boolean
         """
-        return self.children is None and self.name is not None and self.data_type is not None
+        return self.children is None and self.name is not None and self.data_type is not None and not isinstance(
+            self.data_type, ListDataType)
 
     def is_fork(self):
         """
         Simple method to determine whether the node is forking.
         :return: Boolean
         """
-        return self.children is not None and self.name is not None and self.data_type is None
+        return self.children is not None and self.name is not None and self.data_type is not None and isinstance(
+            self.data_type, ListDataType)
 
-    def overwrite_children(self, children, name):
+    def overwrite_children(self, name, children, data_type):
         """
         Force method which sets the name and the children leaves to the node.
         :param children: Array-like of Nodes.
         :param name: String specifying the name of the node.
+        :param data_type: Tree-like data type of instance DataType specifying the underlying fork.
         :return: Instance of the object itself with children and name set.
         """
         if not isinstance(children, (collections.Sequence, np.ndarray)) or isinstance(children, str):
@@ -57,13 +60,18 @@ class Node(object):
 
         self.name = name
 
+        if not isinstance(data_type, DataType):
+            raise AttributeError("Unsupported input data type: '{}'".format(data_type))
+
+        self.data_type = data_type
+
         return self
 
     def overwrite_child(self, name, data_type):
         """
         Force method which sets the name and the data type to the node.
         :param name: String specifying the name of the node.
-        :param data_type: Instance of TreeDataType specifying the type of data for the node.
+        :param data_type: Instance of DataType specifying the type of data for the node.
         :return: Instance of the object itself with name and data type set.
         """
         if not isinstance(name, str):
@@ -71,7 +79,7 @@ class Node(object):
 
         self.name = name
 
-        if not isinstance(data_type, TreeDataType):
+        if not isinstance(data_type, DataType):
             raise AttributeError("Unsupported input data type: '{}'".format(data_type))
 
         self.data_type = data_type
@@ -103,12 +111,9 @@ class Node(object):
 
     def get_data_type(self):
         """
-        Get the TreeDataType of the node.
-        :return: TreeDataType.
+        Get the DataType of the node.
+        :return: DataType.
         """
-        if not self.is_child():
-            raise AttributeError("Cannot get data type from a fork!")
-
         if self.data_type is None:
             raise RuntimeError("The data type is missing!")
 
@@ -120,10 +125,10 @@ class ForkNode(Node):
     Fork node.
     """
 
-    def __init__(self, name, children):
-        super().__init__()
+    def __init__(self, name, children, data_type):
+        super(ForkNode, self).__init__()
 
-        self.overwrite_children(children, name)
+        self.overwrite_children(name=name, children=children, data_type=data_type)
 
 
 class ChildNode(Node):
@@ -132,6 +137,6 @@ class ChildNode(Node):
     """
 
     def __init__(self, name, data_type):
-        super().__init__()
+        super(ChildNode, self).__init__()
 
-        self.overwrite_child(name, data_type)
+        self.overwrite_child(name=name, data_type=data_type)
