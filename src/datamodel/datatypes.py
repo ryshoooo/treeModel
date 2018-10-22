@@ -1,6 +1,6 @@
 import numpy as np
 import collections
-from datetime import date, datetime
+from datetime import datetime
 
 
 class DataType(object):
@@ -156,7 +156,20 @@ class ArrayDataType(DataType):
         if not isinstance(value, (collections.Sequence, np.ndarray)) or isinstance(value, str):
             raise AttributeError("Incorrect format of input value!")
 
-        return self.get_numpy_type().type(value).astype(self.element_numpy_type)
+        built_value = [self.element_data_type.build_numpy_value(x) for x in value]
+        return self.get_numpy_type().type(built_value).astype(self.element_numpy_type)
+
+    def build_python_value(self, value):
+        """
+        Nethod which converts the input value into the python type value.
+        :param value: Value to be converted.
+        :return: Converted value of the specific data type.
+        """
+        if not isinstance(value, (collections.Sequence, np.ndarray)) or isinstance(value, str):
+            raise AttributeError("Incorrect format of input value!")
+
+        built_value = [self.element_data_type.build_python_value(x) for x in value]
+        return self.get_python_type()(built_value)
 
 
 class ListDataType(DataType):
@@ -203,7 +216,21 @@ class ListDataType(DataType):
         if not isinstance(value, (collections.Sequence, np.ndarray)) or isinstance(value, str):
             raise AttributeError("Incorrect format of input value!")
 
-        input_values = tuple([self.element_data_types[x].build_numpy_value(value[x])
-                              for x in range(len(self.element_data_types))])
+        input_values = [tuple([self.element_data_types[x].build_numpy_value(value[x])
+                               for x in range(len(self.element_data_types))])]
 
         return np.array(input_values, dtype=self.element_numpy_types)
+
+    def build_python_value(self, value):
+        """
+        Nethod which converts the input value into the python type value.
+        :param value: Value to be converted.
+        :return: Converted value of the specific data type.
+        """
+        if not isinstance(value, (collections.Sequence, np.ndarray)) or isinstance(value, str):
+            raise AttributeError("Incorrect format of input value!")
+
+        input_values = tuple([self.element_data_types[x].build_python_value(value[x])
+                              for x in range(len(self.element_data_types))])
+
+        return self.get_python_type()(input_values)
