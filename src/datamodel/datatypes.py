@@ -121,7 +121,7 @@ class DateDataType(DataType):
         :param value: Value to be converted.
         :return: Converted value of the specific data type.
         """
-        return self.get_numpy_type().type(self.build_python_value(value))
+        return self.get_numpy_type().type(self.build_python_value(value)).astype(self.get_numpy_type())
 
 
 class ArrayDataType(DataType):
