@@ -6,27 +6,57 @@ from datetime import date
 class DataType(object):
     """
     Conversion between numpy and python types for the Tree input data type.
+    The upper data type for tree data.
     """
 
     def __init__(self, numpy_dtype, python_dtype, numpy_na_value, python_na_value):
+        """
+        Initialize the data type object.
+        :param numpy_dtype: Specification of the numpy type
+        :param python_dtype: Specification of the python type
+        :param numpy_na_value: Specification of the numpy missing value
+        :param python_na_value: Specification of the python missing value
+        """
         self.numpy_dtype = numpy_dtype
         self.python_dtype = python_dtype
         self.numpy_na_value = numpy_na_value
         self.python_na_value = python_na_value
 
     def is_nullable(self):
+        """
+        Method returns whether the current data type is nullable.
+        :return: Boolean
+        """
         return self.python_na_value is not None or self.numpy_na_value is not None
 
     def get_numpy_type(self):
+        """
+        Method to return numpy type of the data type.
+        :return: Numpy DType
+        """
         return np.dtype(self.numpy_dtype)
 
     def get_python_type(self):
+        """
+        Method to return python type of the data type.
+        :return: Type
+        """
         return self.python_dtype
 
     def build_numpy_value(self, value):
+        """
+        Method which converts the input value into the numpy type.
+        :param value: Value to be converted.
+        :return: Converted value of the specific data type.
+        """
         return self.get_numpy_type().type(value)
 
     def build_python_value(self, value):
+        """
+        Nethod which converts the input value into the python type value.
+        :param value: Value to be converted.
+        :return: Converted value of the specific data type.
+        """
         return self.get_python_type()(value)
 
 
