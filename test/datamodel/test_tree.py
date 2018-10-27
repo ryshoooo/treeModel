@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from src.datamodel.tree import ChildNode, ForkNode
-from src.datamodel.datatypes import StringDataType, FloatDataType, DateDataType, ListDataType
+from src.datamodel.datatypes import ChildNode, ForkNode
+from src.datamodel.datatypes import StringDataType, FloatDataType, DateDataType, TreeDataType
 
 
 class TestNode(TestCase):
@@ -25,9 +25,7 @@ class TestNode(TestCase):
         leaf_string = self.get_single_string_leaf()
         leaf_date = self.get_single_date_leaf()
         leaf_float = self.get_single_float_leaf()
-        fork_data_type = ListDataType(element_data_types=[StringDataType(longest_string=10),
-                                                          DateDataType(resolution='D'), FloatDataType()])
-        return ForkNode(name='test-fork', children=[leaf_string, leaf_date, leaf_float], data_type=fork_data_type)
+        return ForkNode(name='test-fork', children=[leaf_string, leaf_date, leaf_float])
 
     def test_is_child(self):
         leaf_string = self.get_single_string_leaf()
@@ -50,9 +48,7 @@ class TestNode(TestCase):
             self.assertTrue('leaf' in child.name)
 
         new_children = [ChildNode(name="new", data_type=DateDataType(resolution='M'))]
-        new_children_data_type = ListDataType(element_data_types=[DateDataType(resolution='M')])
-        single_fork = single_fork.overwrite_children(children=new_children, name='new-fork',
-                                                     data_type=new_children_data_type)
+        single_fork = single_fork.overwrite_children(children=new_children, name='new-fork')
 
         self.assertTrue(single_fork.is_fork())
         self.assertEqual(len(single_fork.children), 1)
@@ -76,14 +72,8 @@ class TestNode(TestCase):
 
     def test_get_children(self):
         single_fork = self.get_fork_node()
-        single_leaf = self.get_single_float_leaf()
 
         single_fork_children = single_fork.get_children()
-        try:
-            single_leaf.get_children()
-        except Exception as e:
-            self.assertTrue(isinstance(e, AttributeError))
-            self.assertEqual(str(e), 'Cannot get children from a leaf!')
 
         self.assertTrue(len(single_fork_children))
         for ind in range(len(single_fork_children)):
@@ -104,4 +94,4 @@ class TestNode(TestCase):
         dtp = single_leaf.get_data_type()
         self.assertTrue(isinstance(dtp, FloatDataType))
         dtp = single_fork.get_data_type()
-        self.assertTrue(isinstance(dtp, ListDataType))
+        self.assertTrue(isinstance(dtp, TreeDataType))

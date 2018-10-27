@@ -17,10 +17,16 @@ class DataType(object):
         :param numpy_na_value: Specification of the numpy missing value
         :param python_na_value: Specification of the python missing value
         """
-        self.numpy_dtype = numpy_dtype
-        self.python_dtype = python_dtype
-        self.numpy_na_value = numpy_na_value
-        self.python_na_value = python_na_value
+        if not isinstance(self, TreeDataType):
+            self.numpy_dtype = numpy_dtype
+            self.python_dtype = python_dtype
+            self.numpy_na_value = numpy_na_value
+            self.python_na_value = python_na_value
+        else:
+            self.numpy_dtype = None
+            self.python_dtype = None
+            self.numpy_na_value = None
+            self.python_na_value = None
 
     def is_nullable(self):
         """
@@ -174,7 +180,7 @@ class ArrayDataType(DataType):
 
 class ListDataType(DataType):
     """
-    DataType for lists/trees (list with elements of different data types)
+    DataType for lists (list with elements of different data types)
     """
 
     def __init__(self, element_data_types, nullable=True):
@@ -234,3 +240,252 @@ class ListDataType(DataType):
                               for x in range(len(self.element_data_types))])
 
         return self.get_python_type()(input_values)
+
+
+class TreeDataType(DataType):
+    """
+    DataType for trees (python dictionaries).
+    """
+
+    def __init__(self, schema, nullable=True):
+        """
+        Initialize the data type.
+        :param schema: TreeSchema specifying the input tree.
+        :param nullable: Boolean specifying whether the data type can contain missing values.
+        """
+
+        if not isinstance(schema, TreeSchema):
+            raise AttributeError("Input schema has to be an instance of TreeSchema!")
+
+        self.schema = schema
+
+        if nullable:
+            super(TreeDataType, self).__init__(dict, dict, {}, {})
+        else:
+            super(TreeDataType, self).__init__(dict, dict, None, None)
+
+    def build_numpy_value(self, value):
+        """
+        Method which converts the input value into the numpy type.
+        :param value: Value to be converted.
+        :return: Converted value of the specific data type.
+        """
+        if not isinstance(value, dict):
+            raise AttributeError("Cannot build non-dictionary-like input in TreeDataType!")
+
+        return self.schema.base_fork_node.build_value(self.get_numpy_type().type(value), 'numpy')
+
+    def build_python_value(self, value):
+        """
+        Nethod which converts the input value into the python type value.
+        :param value: Value to be converted.
+        :return: Converted value of the specific data type.
+        """
+        if not isinstance(value, dict):
+            raise AttributeError("Cannot build non-dictionary-like input in TreeDataType!")
+
+        return self.schema.base_fork_node.build_value(self.get_python_type()(value), 'python')
+
+
+class Node(object):
+    """
+    Main node object, can be considered as a data point or a collection of data points.
+    """
+
+    def __init__(self):
+        """
+        Instantiation of the main node object.
+        """
+        # Set children nodes, name, value and the data_type of the node to None.
+        self.children = None
+        self.name = None
+        self.data_type = None
+        self.value = None
+
+    def is_child(self):
+        """
+        Simple method to determine whether the node is a leaf.
+        :return: Boolean
+        """
+        return self.children is None and self.name is not None and self.data_type is not None and not isinstance(
+            self.data_type, TreeDataType)
+
+    def is_fork(self):
+        """
+        Simple method to determine whether the node is forking.
+        :return: Boolean
+        """
+        return self.children is not None and self.name is not None and self.data_type is not None and isinstance(
+            self.data_type, TreeDataType)
+
+    def get_name(self):
+        """
+        Get the name of the node.
+        :return: String.
+        """
+        if self.name is None:
+            raise RuntimeError("The name of the node is missing!")
+
+        return self.name
+
+    def get_data_type(self):
+        """
+        Get the DataType of the node.
+        :return: DataType.
+        """
+        if self.data_type is None:
+            raise RuntimeError("The data type is missing!")
+
+        return self.data_type
+
+
+class ForkNode(Node):
+    """
+    Fork node.
+    """
+
+    def __init__(self, name, children):
+        super(ForkNode, self).__init__()
+
+        self.overwrite_children(name=name, children=children)
+
+    def overwrite_children(self, name, children):
+        """
+        Force method which sets the name and the children leaves to the node.
+        :param children: Array-like of Nodes.
+        :param name: String specifying the name of the node.
+        :return: Instance of the object itself with children and name set.
+        """
+        if not isinstance(children, (collections.Sequence, np.ndarray)) or isinstance(children, str):
+            raise AttributeError("Incorrect format of input children nodes!")
+
+        for child in children:
+            if not isinstance(child, Node):
+                raise AttributeError("Nodes have to be of Node instance!")
+
+        self.children = children
+
+        if not isinstance(name, str):
+            raise AttributeError("The name of the node has to be a string!")
+
+        self.name = name
+
+        self.data_type = TreeDataType(schema=TreeSchema(base_fork_node=self))
+
+        values, counts = np.unique(ar=self.get_children_names(), return_counts=True)
+        if np.max(counts) > 1:
+            raise AttributeError(
+                "Children nodes with the same name are not allowed! '{}'".format(values[np.argmax(counts)]))
+
+        return self
+
+    def get_children(self):
+        """
+        Get the list of the children nodes.
+        :return: List of Nodes.
+        """
+        if not self.is_fork():
+            raise AttributeError("Cannot get children from a leaf!")
+
+        if self.children is None:
+            raise RuntimeError("Empty children leaves!")
+
+        return self.children
+
+    def get_children_names(self):
+        """
+        Get the list of children names.
+        :return: List of strings representing the children names.
+        """
+        if not self.is_fork():
+            raise AttributeError("Cannot get children from a leaf!")
+
+        if self.children is None:
+            raise RuntimeError("Empty children leaves!")
+
+        return [x.get_name() for x in self.get_children()]
+
+    def find_child(self, name):
+        """
+        Find specific child by name
+        :param name: String specifying the child's name
+        :return: Node
+        """
+        if not isinstance(name, str):
+            raise AttributeError("Input parameter 'name' has to be a string!")
+
+        child_list = [x for x in self.get_children() if x.get_name() == name]
+
+        if not len(child_list):
+            raise RuntimeError("Child '{}' was not found in '{}'".format(name, self.name))
+        elif not len(child_list) - 1:
+            return child_list[0]
+        else:
+            raise RuntimeError(
+                "Impossible error achieved! More than 1 child found with the same name '{}' in Node '{}'" \
+                    .format(name, self.name))
+
+    def build_value(self, value, method='numpy'):
+        """
+        Method which builds tree to the specific data type of the tree.
+        :param value: Dictionary
+        :param method: String specifying the building method (numpy or python)
+        :return: Dictionary with its values casted to the correct type.
+        """
+        if not isinstance(value, dict):
+            raise RuntimeError("Incorrect input format of the value!")
+
+        for name in value.keys():
+            if name not in self.get_children_names():
+                raise RuntimeError("Unknown node of name '{}' not specified in the Node '{}'".format(name, self.name))
+
+            if method == 'numpy':
+                value[name] = self.find_child(name).get_data_type().build_numpy_value(value[name])
+            elif method == 'python':
+                value[name] = self.find_child(name).get_data_type().build_python_value(value[name])
+            else:
+                raise AttributeError("Method '{}' is not supported!".format(method))
+
+        return value
+
+
+class ChildNode(Node):
+    """
+    Leaf.
+    """
+
+    def __init__(self, name, data_type):
+        super(ChildNode, self).__init__()
+
+        self.overwrite_child(name=name, data_type=data_type)
+
+    def overwrite_child(self, name, data_type):
+        """
+        Force method which sets the name and the data type to the node.
+        :param name: String specifying the name of the node.
+        :param data_type: Instance of DataType specifying the type of data for the node.
+        :return: Instance of the object itself with name and data type set.
+        """
+        if not isinstance(name, str):
+            raise AttributeError("The name of the node has to be a string!")
+
+        self.name = name
+
+        if not isinstance(data_type, DataType):
+            raise AttributeError("Unsupported input data type: '{}'".format(data_type))
+
+        self.data_type = data_type
+
+        return self
+
+
+class TreeSchema(object):
+    """
+    Base class for input schema for a particular dataset.
+    """
+
+    def __init__(self, base_fork_node):
+        if not isinstance(base_fork_node, ForkNode):
+            raise AttributeError("Incorrect format of input base node!")
+
+        self.base_fork_node = base_fork_node
