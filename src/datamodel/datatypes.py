@@ -387,6 +387,7 @@ class Node(object):
         if not isinstance(name, str):
             raise AttributeError("Parameter name has to be a string!")
         self.name = name
+        
         return self
 
     def get_data_type(self):
@@ -398,6 +399,18 @@ class Node(object):
             raise RuntimeError("The data type is missing!")
 
         return self.data_type
+
+    def set_data_type(self, data_type):
+        """
+        Set the data type of the node.
+        :param data_type: DataType object.
+        :return: Instance of self with updated data type.
+        """
+        if not isinstance(data_type, DataType):
+            raise AttributeError("Parameter data_type has to be an instance of DataType object!")
+        self.data_type = data_type
+
+        return self
 
 
 class ForkNode(Node):
