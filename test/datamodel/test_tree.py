@@ -54,6 +54,17 @@ class TestNode(TestCase):
         self.assertEqual(single_fork.name, single_fork.get_name())
         self.assertEqual(single_leaf.name, single_leaf.get_name())
 
+    def test_set_name(self):
+        single_fork = self.get_fork_node()
+        single_leaf = self.get_single_float_leaf()
+
+        self.assertEqual(single_fork.name, single_fork.get_name())
+        single_fork.set_name("new_fork_name")
+        self.assertEqual(single_fork.name, "new_fork_name")
+        self.assertEqual(single_leaf.name, single_leaf.get_name())
+        single_leaf.set_name("new_leaf_name")
+        self.assertEqual(single_leaf.name, "new_leaf_name")
+
     def test_get_data_type(self):
         single_fork = self.get_fork_node()
         single_leaf = self.get_single_float_leaf()
@@ -62,6 +73,15 @@ class TestNode(TestCase):
         self.assertTrue(isinstance(dtp, FloatDataType))
         dtp = single_fork.get_data_type()
         self.assertTrue(isinstance(dtp, TreeDataType))
+
+    def test_set_data_type(self):
+        single_leaf = self.get_single_float_leaf()
+
+        dtp = single_leaf.get_data_type()
+        self.assertTrue(isinstance(dtp, FloatDataType))
+        single_leaf.set_data_type(DateDataType())
+        dtp = single_leaf.get_data_type()
+        self.assertTrue(isinstance(dtp, DateDataType))
 
 
 class TestChildNode(TestCase):
