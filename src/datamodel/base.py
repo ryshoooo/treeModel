@@ -1,10 +1,8 @@
 """
 This module contains base classes and methods for the input data model.
 """
-import collections
-import numpy as np
 
-from .tree import Node
+from .datatypes import TreeSchema
 
 
 class BaseTreeRow(object):
@@ -13,30 +11,23 @@ class BaseTreeRow(object):
     """
 
     def __init__(self, input_row, schema=None):
-        self.input_row = input_row
-
         if not isinstance(schema, TreeSchema):
             raise AttributeError("The schema for the row has to be of TreeSchema instance!")
 
         self.schema = schema
+        self.row = self.build_tree(input_row)
 
     def set_schema(self, schema):
         self.schema = schema
 
+    def build_tree(self, input_row):
+        if not isinstance(input_row, dict):
+            try:
+                input_row = dict(input_row)
+            except Exception as e:
+                raise RuntimeError("Failed to interpret the input row as dictionary!")
 
-class TreeSchema(object):
-    """
-    Base class for input schema for a particular dataset.
-    """
+        return [x.get_data_type().build_numpy_value(input_row[x.get_name()]) for x in self.schema.nodes]
 
-    def __init__(self, nodes):
-        self.num_levels = 0
 
-        if not isinstance(nodes, (collections.Sequence, np.ndarray)) or isinstance(nodes, str):
-            raise AttributeError("Incorrect format of input nodes!")
 
-        for node in nodes:
-            if not isinstance(node, Node):
-                raise AttributeError("Nodes have to be of Node instance!")
-
-        self.dict_schema = self.build_dict_schema(nodes)

@@ -140,6 +140,18 @@ class TestDateDataType(TestCase):
     Test class for StringDataType.
     """
 
+    def test__datetime_format(self):
+        self.assertEqual(DateDataType._datetime_format("2018", "%Y"), datetime(2018, 1, 1))
+        self.assertEqual(DateDataType._datetime_format("2018-03", "%Y-%m"), datetime(2018, 3, 1))
+        self.assertEqual(DateDataType._datetime_format("2018-03-29", "%Y-%m-%d"), datetime(2018, 3, 29))
+        self.assertEqual(DateDataType._datetime_format("2018-03-29 18", "%Y-%m-%d %H"), datetime(2018, 3, 29, 18))
+        self.assertEqual(DateDataType._datetime_format("2018-03-29 18:36", "%Y-%m-%d %H:%M"),
+                         datetime(2018, 3, 29, 18, 36))
+        self.assertEqual(DateDataType._datetime_format("2018-03-29 18:36:59", "%Y-%m-%d %H:%M:%S"),
+                         datetime(2018, 3, 29, 18, 36, 59))
+        self.assertEqual(DateDataType._datetime_format("2018-03-29 18:36:59.967344", "%Y-%m-%d %H:%M:%S.%f"),
+                         datetime(2018, 3, 29, 18, 36, 59, 967344))
+
     def test_is_nullable(self):
         dtp = DateDataType(nullable=False)
         self.assertFalse(dtp.is_nullable())
