@@ -66,6 +66,12 @@ class DataType(object):
         except TypeError:
             return self.python_na_value
 
+    def __str__(self):
+        return "DataType"
+
+    def __repr__(self):
+        return "DataType"
+
 
 class StringDataType(DataType):
     """
@@ -78,10 +84,15 @@ class StringDataType(DataType):
         :param nullable: Boolean specifying whether the data type can contain missing values.
         :param longest_string: Integer specifying the longest possible string input.
         """
+        self.longest_string = longest_string
+
         if nullable:
             super(StringDataType, self).__init__('<U{}'.format(longest_string), str, 'nan', None)
         else:
             super(StringDataType, self).__init__('<U{}'.format(longest_string), str, None, None)
+
+    def __str__(self):
+        return "StringDataType"
 
 
 class FloatDataType(DataType):
@@ -95,10 +106,14 @@ class FloatDataType(DataType):
         :param nullable: Boolean specifying whether the data type can contain missing values.
         :param bits: Integer specifying the number of bits to allocate in the memory for the float.
         """
+        self.bits = bits
         if nullable:
             super(FloatDataType, self).__init__('<f{}'.format(bits), float, np.nan, None)
         else:
             super(FloatDataType, self).__init__('<f{}'.format(bits), float, None, None)
+
+    def __str__(self):
+        return "FloatDataType"
 
 
 class DateDataType(DataType):
@@ -113,6 +128,8 @@ class DateDataType(DataType):
         :param resolution: String specifying the wanted numpy resolution of the date type.
         :param format_string: String Timestamp format.
         """
+        self.resolution = resolution
+        self.format_string = format_string
         if nullable:
             super(DateDataType, self).__init__('<M8[{}]'.format(resolution),
                                                lambda x: self._datetime_format(x, format_string),
@@ -124,6 +141,12 @@ class DateDataType(DataType):
 
     @staticmethod
     def _datetime_format(value, format_string):
+        """
+        Helper method to convert input value into the python datetime format.
+        :param value: String representing the timestamp
+        :param format_string: String representing the timestamp format
+        :return: Either datetime object or empty string.
+        """
         try:
             return datetime.strptime(value, format_string)
         except ValueError:
@@ -136,6 +159,9 @@ class DateDataType(DataType):
         :return: Converted value of the specific data type.
         """
         return self.get_numpy_type().type(self.build_python_value(value)).astype(self.get_numpy_type())
+
+    def __str__(self):
+        return "DateDataType({}, {})".format(self.resolution, self.format_string)
 
 
 class ArrayDataType(DataType):
@@ -185,13 +211,16 @@ class ArrayDataType(DataType):
         built_value = [self.element_data_type.build_python_value(x) for x in value]
         return self.get_python_type()(built_value)
 
+    def __str__(self):
+        return """ArrayDataType({})""".format(self.element_data_type)
+
 
 class ListDataType(DataType):
     """
     DataType for lists (list with elements of different data types)
     """
 
-    def __init__(self, element_data_types, nullable=True):
+    def __init__(self, element_data_types, nullable=True, level=1):
         """
         Initialize the data type.
         :param element_data_types: List/Sequence of DataTypes
@@ -207,6 +236,7 @@ class ListDataType(DataType):
 
         self.element_data_types = element_data_types
         self.element_numpy_types = self._get_numpy_dtypes()
+        self.level = level
 
         if nullable:
             super(ListDataType, self).__init__(np.ndarray, list, np.empty((0,), dtype=self.element_numpy_types), [])
@@ -248,6 +278,11 @@ class ListDataType(DataType):
                               for x in range(len(self.element_data_types))])
 
         return self.get_python_type()(input_values)
+
+    def __str__(self):
+        return str(
+            "ListDataType(\n" + "\t" * self.level + "{}\n" + "\t" * (self.level - 1) + " " * len("ListDataType") + ")") \
+            .format(("\n" + "\t" * self.level).join([str(x) for x in self.element_data_types]))
 
 
 #####################################################
@@ -298,6 +333,9 @@ class TreeDataType(DataType):
 
         return self.schema.base_fork_node.build_value(self.get_python_type()(value), 'python')
 
+    def __str__(self):
+        return """TreeDataType({})""".format(str(self.schema))
+
 
 class Node(object):
     """
@@ -340,6 +378,17 @@ class Node(object):
 
         return self.name
 
+    def set_name(self, name):
+        """
+        Set the name of the node.
+        :param name: String
+        :return: Node with name set.
+        """
+        if not isinstance(name, str):
+            raise AttributeError("Parameter name has to be a string!")
+        self.name = name
+        return self
+
     def get_data_type(self):
         """
         Get the DataType of the node.
@@ -356,14 +405,14 @@ class ForkNode(Node):
     Fork node.
     """
 
-    def __init__(self, name, children):
+    def __init__(self, name, children, level=1):
         """
         Initialize the ForkNode object.
         :param name: Name for the fork.
         :param children: List of Node objects.
         """
         super(ForkNode, self).__init__()
-
+        self.level = level
         self.overwrite_children(name=name, children=children)
 
     def overwrite_children(self, name, children):
@@ -475,6 +524,10 @@ class ForkNode(Node):
 
         return value_safe
 
+    def __str__(self):
+        return str("{}(\n" + "\t" * self.level + "{}\n" + "\t" * (self.level - 1) + " " * len(self.get_name()) + ")") \
+            .format(self.get_name(), ("\n" + "\t" * self.level).join([str(x) for x in self.children]))
+
 
 class ChildNode(Node):
     """
@@ -510,6 +563,9 @@ class ChildNode(Node):
 
         return self
 
+    def __str__(self):
+        return """{}({})""".format(self.get_name(), str(self.get_data_type()))
+
 
 class TreeSchema(object):
     """
@@ -527,6 +583,9 @@ class TreeSchema(object):
             raise AttributeError("Incorrect format of input base node!")
 
         self.base_fork_node = base_fork_node
+
+    def __str__(self):
+        return str(self.base_fork_node)
 
     def create_dummy_nan_tree(self):
         """
