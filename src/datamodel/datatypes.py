@@ -69,9 +69,6 @@ class DataType(object):
     def __str__(self):
         return "DataType"
 
-    def __repr__(self):
-        return "DataType"
-
 
 class StringDataType(DataType):
     """
@@ -387,7 +384,7 @@ class Node(object):
         if not isinstance(name, str):
             raise AttributeError("Parameter name has to be a string!")
         self.name = name
-        
+
         return self
 
     def get_data_type(self):
