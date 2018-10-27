@@ -3,6 +3,10 @@ import collections
 from datetime import datetime
 
 
+#####################################################
+#              STANDARD DATATYPES                   #
+#####################################################
+
 class DataType(object):
     """
     Conversion between numpy and python types for the Tree input data type.
@@ -236,6 +240,10 @@ class ListDataType(DataType):
         return self.get_python_type()(input_values)
 
 
+#####################################################
+#              TREE FUNCTIONALITY                   #
+#####################################################
+
 class TreeDataType(DataType):
     """
     DataType for trees (python dictionaries).
@@ -339,6 +347,11 @@ class ForkNode(Node):
     """
 
     def __init__(self, name, children):
+        """
+        Initialize the ForkNode object.
+        :param name: Name for the fork.
+        :param children: List of Node objects.
+        """
         super(ForkNode, self).__init__()
 
         self.overwrite_children(name=name, children=children)
@@ -449,6 +462,11 @@ class ChildNode(Node):
     """
 
     def __init__(self, name, data_type):
+        """
+        Initialize the ChildNode object.
+        :param name: Name for the child node.
+        :param data_type: DataType object specifying the data type for the child.
+        """
         super(ChildNode, self).__init__()
 
         self.overwrite_child(name=name, data_type=data_type)
@@ -476,9 +494,15 @@ class ChildNode(Node):
 class TreeSchema(object):
     """
     Base class for input schema for a particular dataset.
+    NB: Not a big difference between ForkNode and TreeSchema, it is important to distinguish between them though,
+    since ForkNode's functionality is more tree-like, while the schema only gives more metadata about the object.
     """
 
     def __init__(self, base_fork_node):
+        """
+        Initialize the TreeSchema object (basically works as a ForkNode)
+        :param base_fork_node:
+        """
         if not isinstance(base_fork_node, ForkNode):
             raise AttributeError("Incorrect format of input base node!")
 
