@@ -17,16 +17,10 @@ class DataType(object):
         :param numpy_na_value: Specification of the numpy missing value
         :param python_na_value: Specification of the python missing value
         """
-        if not isinstance(self, TreeDataType):
-            self.numpy_dtype = numpy_dtype
-            self.python_dtype = python_dtype
-            self.numpy_na_value = numpy_na_value
-            self.python_na_value = python_na_value
-        else:
-            self.numpy_dtype = None
-            self.python_dtype = None
-            self.numpy_na_value = None
-            self.python_na_value = None
+        self.numpy_dtype = numpy_dtype
+        self.python_dtype = python_dtype
+        self.numpy_na_value = numpy_na_value
+        self.python_na_value = python_na_value
 
     def is_nullable(self):
         """
