@@ -1,4 +1,6 @@
 from unittest import TestCase
+from datetime import datetime
+import numpy as np
 
 from src.datamodel.datatypes import ChildNode, ForkNode
 from src.datamodel.datatypes import StringDataType, FloatDataType, DateDataType, TreeDataType
@@ -21,11 +23,17 @@ class TestNode(TestCase):
     def get_single_date_leaf():
         return ChildNode(name="leaf-date", data_type=DateDataType(resolution='D'))
 
-    def get_fork_node(self):
-        leaf_string = self.get_single_string_leaf()
-        leaf_date = self.get_single_date_leaf()
-        leaf_float = self.get_single_float_leaf()
+    @staticmethod
+    def get_fork_node():
+        leaf_string = TestNode.get_single_string_leaf()
+        leaf_date = TestNode.get_single_date_leaf()
+        leaf_float = TestNode.get_single_float_leaf()
         return ForkNode(name='test-fork', children=[leaf_string, leaf_date, leaf_float])
+
+    @staticmethod
+    def get_random_fork_values():
+        return {'leaf-float': str(np.random.random()), 'leaf-date': "2018-01-01 19:45:33.123456",
+                "leaf-string": np.random.choice(["a", "b", "c", "d"])}
 
     def test_is_child(self):
         leaf_string = self.get_single_string_leaf()
@@ -38,47 +46,6 @@ class TestNode(TestCase):
     def test_is_fork(self):
         single_fork = self.get_fork_node()
         self.assertTrue(single_fork.is_fork())
-
-    def test_overwrite_children(self):
-        single_fork = self.get_fork_node()
-        self.assertTrue(single_fork.is_fork())
-        self.assertEqual(len(single_fork.children), 3)
-        self.assertEqual(single_fork.name, 'test-fork')
-        for child in single_fork.children:
-            self.assertTrue('leaf' in child.name)
-
-        new_children = [ChildNode(name="new", data_type=DateDataType(resolution='M'))]
-        single_fork = single_fork.overwrite_children(children=new_children, name='new-fork')
-
-        self.assertTrue(single_fork.is_fork())
-        self.assertEqual(len(single_fork.children), 1)
-        self.assertEqual(single_fork.name, 'new-fork')
-        for child in single_fork.children:
-            self.assertTrue('new' in child.name)
-
-    def test_overwrite_child(self):
-        single_leaf = self.get_single_float_leaf()
-        self.assertTrue(single_leaf.is_child())
-        self.assertTrue(single_leaf.children is None)
-        self.assertEqual(single_leaf.name, 'leaf-float')
-        self.assertTrue(isinstance(single_leaf.data_type, FloatDataType))
-
-        single_leaf = single_leaf.overwrite_child(name='new-leaf', data_type=DateDataType(resolution='M'))
-
-        self.assertTrue(single_leaf.is_child())
-        self.assertTrue(single_leaf.children is None)
-        self.assertEqual(single_leaf.name, 'new-leaf')
-        self.assertTrue(isinstance(single_leaf.data_type, DateDataType))
-
-    def test_get_children(self):
-        single_fork = self.get_fork_node()
-
-        single_fork_children = single_fork.get_children()
-
-        self.assertTrue(len(single_fork_children))
-        for ind in range(len(single_fork_children)):
-            self.assertTrue(single_fork_children[ind] in single_fork.children)
-            self.assertEqual(single_fork_children[ind].name, single_fork.children[ind].name)
 
     def test_get_name(self):
         single_fork = self.get_fork_node()
@@ -95,3 +62,153 @@ class TestNode(TestCase):
         self.assertTrue(isinstance(dtp, FloatDataType))
         dtp = single_fork.get_data_type()
         self.assertTrue(isinstance(dtp, TreeDataType))
+
+
+class TestChildNode(TestCase):
+    """
+    Test class for ChildNode
+    """
+
+    def test_overwrite_child(self):
+        single_leaf = TestNode.get_single_float_leaf()
+        self.assertTrue(single_leaf.is_child())
+        self.assertTrue(single_leaf.children is None)
+        self.assertEqual(single_leaf.name, 'leaf-float')
+        self.assertTrue(isinstance(single_leaf.data_type, FloatDataType))
+
+        single_leaf = single_leaf.overwrite_child(name='new-leaf', data_type=DateDataType(resolution='M'))
+
+        self.assertTrue(single_leaf.is_child())
+        self.assertTrue(single_leaf.children is None)
+        self.assertEqual(single_leaf.name, 'new-leaf')
+        self.assertTrue(isinstance(single_leaf.data_type, DateDataType))
+
+
+class TestForkNode(TestCase):
+    """
+    Test class for ForkNode
+    """
+
+    def test_overwrite_children(self):
+        single_fork = TestNode.get_fork_node()
+        self.assertTrue(single_fork.is_fork())
+        self.assertEqual(len(single_fork.children), 3)
+        self.assertEqual(single_fork.name, 'test-fork')
+        for child in single_fork.children:
+            self.assertTrue('leaf' in child.name)
+
+        new_children = [ChildNode(name="new", data_type=DateDataType(resolution='M'))]
+        single_fork = single_fork.overwrite_children(children=new_children, name='new-fork')
+
+        self.assertTrue(single_fork.is_fork())
+        self.assertEqual(len(single_fork.children), 1)
+        self.assertEqual(single_fork.name, 'new-fork')
+        for child in single_fork.children:
+            self.assertTrue('new' in child.name)
+
+        new_children_fail = new_children + [ChildNode(name='new', data_type=FloatDataType())]
+
+        try:
+            single_fork.overwrite_children(children=new_children_fail, name='new-fork')
+        except AttributeError as e:
+            self.assertEqual("Children nodes with the same name are not allowed! 'new'", str(e))
+
+    def test_get_children(self):
+        single_fork = TestNode.get_fork_node()
+
+        single_fork_children = single_fork.get_children()
+
+        self.assertTrue(len(single_fork_children))
+        for ind in range(len(single_fork_children)):
+            self.assertTrue(single_fork_children[ind] in single_fork.children)
+            self.assertEqual(single_fork_children[ind].name, single_fork.children[ind].name)
+
+    def test_get_children_names(self):
+        single_fork = TestNode.get_fork_node()
+        single_fork_children_names = single_fork.get_children_names()
+
+        self.assertTrue('leaf-string' in single_fork_children_names)
+        self.assertTrue('leaf-float' in single_fork_children_names)
+        self.assertTrue('leaf-date' in single_fork_children_names)
+        self.assertEqual(single_fork_children_names[0], 'leaf-string')
+        self.assertEqual(single_fork_children_names[1], 'leaf-date')
+        self.assertEqual(single_fork_children_names[2], 'leaf-float')
+        self.assertEqual(len(single_fork_children_names), 3)
+
+    def test_find_child(self):
+        single_fork = TestNode.get_fork_node()
+        children = single_fork.get_children()
+
+        new_child_1 = ChildNode(name='leaf2-string', data_type=StringDataType())
+        new_child_2 = ChildNode(name='leaf2-float', data_type=FloatDataType())
+        new_fork = ForkNode(name='level2', children=[new_child_1, new_child_2])
+
+        fork_for_test = ForkNode(name='test_find_child', children=children + [new_fork])
+        children = fork_for_test.get_children()
+
+        for ind, name in enumerate(fork_for_test.get_children_names()):
+            found = fork_for_test.find_child(name)
+            self.assertEqual(children[ind], found)
+
+        try:
+            fork_for_test.find_child('nonexistent')
+        except RuntimeError as e:
+            self.assertEqual("Child 'nonexistent' was not found in 'test_find_child'", str(e))
+
+    def test_build_value_numpy(self):
+        single_fork = TestNode.get_fork_node()
+        single_fork_values = TestNode.get_random_fork_values()
+        single_fork_built_values = single_fork.build_value(value=single_fork_values, method='numpy')
+
+        self.assertEqual(float(single_fork_values['leaf-float']), single_fork_built_values['leaf-float'])
+        self.assertEqual(np.datetime64(single_fork_values['leaf-date']).astype('<M8[D]'),
+                         single_fork_built_values['leaf-date'])
+        self.assertEqual(single_fork_values['leaf-string'], single_fork_built_values['leaf-string'])
+
+        new_child_1 = ChildNode(name='leaf2-string', data_type=StringDataType())
+        new_child_2 = ChildNode(name='leaf2-float', data_type=FloatDataType())
+        new_fork = ForkNode(name='level2', children=[new_child_1, new_child_2])
+        fork_for_test = ForkNode(name='test_find_child', children=single_fork.get_children() + [new_fork])
+
+        single_fork_values['level2'] = {}
+        single_fork_values['level2']['leaf2-string'] = np.random.choice(['q', 'w', 'e', 'r'])
+        single_fork_values['level2']['leaf2-float'] = str(np.random.random())
+        single_fork_built_values = fork_for_test.build_value(value=single_fork_values, method='numpy')
+
+        self.assertEqual(float(single_fork_values['leaf-float']), single_fork_built_values['leaf-float'])
+        self.assertEqual(np.datetime64(single_fork_values['leaf-date']).astype('<M8[D]'),
+                         single_fork_built_values['leaf-date'])
+        self.assertEqual(single_fork_values['leaf-string'], single_fork_built_values['leaf-string'])
+        self.assertEqual(single_fork_built_values['level2']['leaf2-string'],
+                         single_fork_values['level2']['leaf2-string'])
+        self.assertEqual(single_fork_built_values['level2']['leaf2-float'],
+                         float(single_fork_values['level2']['leaf2-float']))
+
+    def test_build_value_python(self):
+        single_fork = TestNode.get_fork_node()
+        single_fork_values = TestNode.get_random_fork_values()
+        single_fork_built_values = single_fork.build_value(value=single_fork_values, method='python')
+
+        self.assertEqual(float(single_fork_values['leaf-float']), single_fork_built_values['leaf-float'])
+        self.assertEqual(datetime.strptime(single_fork_values['leaf-date'], "%Y-%m-%d %H:%M:%S.%f"),
+                         single_fork_built_values['leaf-date'])
+        self.assertEqual(single_fork_values['leaf-string'], single_fork_built_values['leaf-string'])
+
+        new_child_1 = ChildNode(name='leaf2-string', data_type=StringDataType())
+        new_child_2 = ChildNode(name='leaf2-float', data_type=FloatDataType())
+        new_fork = ForkNode(name='level2', children=[new_child_1, new_child_2])
+        fork_for_test = ForkNode(name='test_find_child', children=single_fork.get_children() + [new_fork])
+
+        single_fork_values['level2'] = {}
+        single_fork_values['level2']['leaf2-string'] = np.random.choice(['q', 'w', 'e', 'r'])
+        single_fork_values['level2']['leaf2-float'] = str(np.random.random())
+        single_fork_built_values = fork_for_test.build_value(value=single_fork_values, method='numpy')
+
+        self.assertEqual(float(single_fork_values['leaf-float']), single_fork_built_values['leaf-float'])
+        self.assertEqual(np.datetime64(single_fork_values['leaf-date']).astype('<M8[D]'),
+                         single_fork_built_values['leaf-date'])
+        self.assertEqual(single_fork_values['leaf-string'], single_fork_built_values['leaf-string'])
+        self.assertEqual(single_fork_built_values['level2']['leaf2-string'],
+                         single_fork_values['level2']['leaf2-string'])
+        self.assertEqual(single_fork_built_values['level2']['leaf2-float'],
+                         float(single_fork_values['level2']['leaf2-float']))

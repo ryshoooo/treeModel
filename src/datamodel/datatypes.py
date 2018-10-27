@@ -439,21 +439,22 @@ class ForkNode(Node):
         :param method: String specifying the building method (numpy or python)
         :return: Dictionary with its values casted to the correct type.
         """
-        if not isinstance(value, dict):
+        value_safe = value.copy()
+        if not isinstance(value_safe, dict):
             raise RuntimeError("Incorrect input format of the value!")
 
-        for name in value.keys():
+        for name in value_safe.keys():
             if name not in self.get_children_names():
                 raise RuntimeError("Unknown node of name '{}' not specified in the Node '{}'".format(name, self.name))
 
             if method == 'numpy':
-                value[name] = self.find_child(name).get_data_type().build_numpy_value(value[name])
+                value_safe[name] = self.find_child(name).get_data_type().build_numpy_value(value_safe[name])
             elif method == 'python':
-                value[name] = self.find_child(name).get_data_type().build_python_value(value[name])
+                value_safe[name] = self.find_child(name).get_data_type().build_python_value(value_safe[name])
             else:
                 raise AttributeError("Method '{}' is not supported!".format(method))
 
-        return value
+        return value_safe
 
 
 class ChildNode(Node):
