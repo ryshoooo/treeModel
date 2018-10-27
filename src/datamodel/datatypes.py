@@ -61,7 +61,10 @@ class DataType(object):
         :param value: Value to be converted.
         :return: Converted value of the specific data type.
         """
-        return self.get_python_type()(value)
+        try:
+            return self.get_python_type()(value)
+        except TypeError:
+            return self.python_na_value
 
 
 class StringDataType(DataType):
@@ -112,12 +115,19 @@ class DateDataType(DataType):
         """
         if nullable:
             super(DateDataType, self).__init__('<M8[{}]'.format(resolution),
-                                               lambda x: datetime.strptime(x, format_string),
-                                               np.datetime64('NaT'), None)
+                                               lambda x: self._datetime_format(x, format_string),
+                                               '', '')
         else:
             super(DateDataType, self).__init__('<M8[{}]'.format(resolution),
-                                               lambda x: datetime.strptime(x, format_string),
+                                               lambda x: self._datetime_format(x, format_string),
                                                None, None)
+
+    @staticmethod
+    def _datetime_format(value, format_string):
+        try:
+            return datetime.strptime(value, format_string)
+        except ValueError:
+            return ''
 
     def build_numpy_value(self, value):
         """
@@ -447,10 +457,19 @@ class ForkNode(Node):
             if name not in self.get_children_names():
                 raise RuntimeError("Unknown node of name '{}' not specified in the Node '{}'".format(name, self.name))
 
+        for name in self.get_children_names():
             if method == 'numpy':
-                value_safe[name] = self.find_child(name).get_data_type().build_numpy_value(value_safe[name])
+                try:
+                    value_safe[name] = self.find_child(name).get_data_type().build_numpy_value(value_safe[name])
+                except KeyError:
+                    child_data_type = self.find_child(name).get_data_type()
+                    value_safe[name] = child_data_type.build_numpy_value(child_data_type.numpy_na_value)
             elif method == 'python':
-                value_safe[name] = self.find_child(name).get_data_type().build_python_value(value_safe[name])
+                try:
+                    value_safe[name] = self.find_child(name).get_data_type().build_python_value(value_safe[name])
+                except KeyError:
+                    child_data_type = self.find_child(name).get_data_type()
+                    value_safe[name] = child_data_type.build_python_value(child_data_type.python_na_value)
             else:
                 raise AttributeError("Method '{}' is not supported!".format(method))
 
@@ -502,9 +521,23 @@ class TreeSchema(object):
     def __init__(self, base_fork_node):
         """
         Initialize the TreeSchema object (basically works as a ForkNode)
-        :param base_fork_node:
+        :param base_fork_node: ForkNode containing the full tree
         """
         if not isinstance(base_fork_node, ForkNode):
             raise AttributeError("Incorrect format of input base node!")
 
         self.base_fork_node = base_fork_node
+
+    def create_dummy_nan_tree(self):
+        """
+        Create dummy tree with NaN values.
+        :return: Dictionary
+        """
+        res = {}
+        for name in self.base_fork_node.get_children_names():
+            child_data_type = self.base_fork_node.find_child(name).get_data_type()
+            if not isinstance(child_data_type, TreeDataType):
+                res[name] = child_data_type.build_numpy_value(child_data_type.numpy_na_value)
+            else:
+                res[name] = child_data_type.schema.create_dummy_nan_tree()
+        return res

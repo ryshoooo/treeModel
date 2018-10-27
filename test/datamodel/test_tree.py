@@ -2,7 +2,7 @@ from unittest import TestCase
 from datetime import datetime
 import numpy as np
 
-from src.datamodel.datatypes import ChildNode, ForkNode
+from src.datamodel.datatypes import ChildNode, ForkNode, TreeSchema
 from src.datamodel.datatypes import StringDataType, FloatDataType, DateDataType, TreeDataType
 
 
@@ -20,13 +20,13 @@ class TestNode(TestCase):
         return ChildNode(name="leaf-float", data_type=FloatDataType())
 
     @staticmethod
-    def get_single_date_leaf():
-        return ChildNode(name="leaf-date", data_type=DateDataType(resolution='D'))
+    def get_single_date_leaf(format_string=''):
+        return ChildNode(name="leaf-date", data_type=DateDataType(resolution='D', format_string=format_string))
 
     @staticmethod
-    def get_fork_node():
+    def get_fork_node(format_string="%Y-%m-%d %H:%M:%S.%f"):
         leaf_string = TestNode.get_single_string_leaf()
-        leaf_date = TestNode.get_single_date_leaf()
+        leaf_date = TestNode.get_single_date_leaf(format_string=format_string)
         leaf_float = TestNode.get_single_float_leaf()
         return ForkNode(name='test-fork', children=[leaf_string, leaf_date, leaf_float])
 
@@ -212,3 +212,263 @@ class TestForkNode(TestCase):
                          single_fork_values['level2']['leaf2-string'])
         self.assertEqual(single_fork_built_values['level2']['leaf2-float'],
                          float(single_fork_values['level2']['leaf2-float']))
+
+
+class TestTreeSchema(TestCase):
+    """
+    Test class for TreeSchema
+    """
+
+    def test_create_dummy_nan_tree(self):
+        single_fork = TestNode.get_fork_node()
+        schema = TreeSchema(base_fork_node=single_fork)
+
+        single_fork_nan_dict = schema.create_dummy_nan_tree()
+
+        self.assertTrue(isinstance(single_fork_nan_dict, dict))
+        for key in single_fork.get_children_names():
+            self.assertTrue(key in single_fork_nan_dict.keys())
+
+        self.assertTrue(np.isnan(single_fork_nan_dict['leaf-float']))
+        self.assertEqual(single_fork_nan_dict['leaf-string'], 'nan')
+        self.assertTrue(np.isnat(single_fork_nan_dict['leaf-date']))
+
+        new_child_1 = ChildNode(name='leaf2-string', data_type=StringDataType())
+        new_child_2 = ChildNode(name='leaf2-float', data_type=FloatDataType())
+        new_fork = ForkNode(name='level2', children=[new_child_1, new_child_2])
+        fork_for_test = ForkNode(name='test_find_child', children=single_fork.get_children() + [new_fork])
+
+        schema = TreeSchema(base_fork_node=fork_for_test)
+        multi_fork_nan_dict = schema.create_dummy_nan_tree()
+
+        self.assertTrue(isinstance(multi_fork_nan_dict, dict))
+        for key in fork_for_test.get_children_names():
+            self.assertTrue(key in multi_fork_nan_dict.keys())
+
+        self.assertTrue(np.isnan(multi_fork_nan_dict['leaf-float']))
+        self.assertEqual(multi_fork_nan_dict['leaf-string'], 'nan')
+        self.assertTrue(np.isnat(multi_fork_nan_dict['leaf-date']))
+        self.assertEqual(multi_fork_nan_dict['level2']['leaf2-string'], 'nan')
+        self.assertTrue(np.isnan(multi_fork_nan_dict['level2']['leaf2-float']))
+
+
+class TestTreeDataType(TestCase):
+    """
+    Test class for ListDataType.
+    """
+
+    @staticmethod
+    def get_schema_v1():
+        fork = TestNode.get_fork_node(format_string="%Y-%m-%d")
+        return TreeSchema(base_fork_node=fork)
+
+    @staticmethod
+    def get_schema_v2():
+        fork = TestNode.get_fork_node(format_string="%Y-%m-%d")
+        return TreeSchema(
+            base_fork_node=ForkNode(name='base',
+                                    children=fork.get_children() + [ChildNode('new_child', StringDataType())])
+        )
+
+    @staticmethod
+    def get_schema_v3():
+        fork = TestNode.get_fork_node(format_string="%Y-%m-%d")
+        fork2 = ForkNode(name='level2',
+                         children=[ChildNode('leaf2-string', StringDataType()),
+                                   ChildNode('leaf2-float', FloatDataType())]
+                         )
+        return TreeSchema(
+            base_fork_node=ForkNode('base', fork.get_children() + [ChildNode('new_child', StringDataType()), fork2])
+        )
+
+    def test_is_nullable(self):
+        dtp = TreeDataType(schema=self.get_schema_v1(), nullable=False)
+        self.assertFalse(dtp.is_nullable())
+        dtp = TreeDataType(schema=self.get_schema_v1(), nullable=True)
+        self.assertTrue(dtp.is_nullable())
+
+    def test_get_numpy_type(self):
+        dtp = TreeDataType(schema=self.get_schema_v1())
+        self.assertEqual(dtp.get_numpy_type(), dict)
+        dtp = TreeDataType(schema=self.get_schema_v2())
+        self.assertEqual(dtp.get_numpy_type(), dict)
+        dtp = TreeDataType(schema=self.get_schema_v3())
+        self.assertEqual(dtp.get_numpy_type(), dict)
+
+    def test_get_python_type(self):
+        dtp = TreeDataType(schema=self.get_schema_v1())
+        self.assertEqual(dtp.get_python_type(), dict)
+        dtp = TreeDataType(schema=self.get_schema_v2())
+        self.assertEqual(dtp.get_python_type(), dict)
+        dtp = TreeDataType(schema=self.get_schema_v3())
+        self.assertEqual(dtp.get_python_type(), dict)
+
+    def test_build_numpy_value(self):
+        # Case number 1
+        dtp = TreeDataType(schema=self.get_schema_v1())
+
+        built_empty = dtp.build_numpy_value({})
+        for name in dtp.schema.base_fork_node.get_children_names():
+            self.assertTrue(name in built_empty.keys())
+
+        self.assertEqual(built_empty['leaf-string'], 'nan')
+        self.assertTrue(np.isnan(built_empty['leaf-float']))
+        self.assertTrue(np.isnat(built_empty['leaf-date']))
+
+        built_non_empty = dtp.build_numpy_value({
+            'leaf-string': 'tralala', 'leaf-float': 29.23, 'leaf-date': '1993-04-01'})
+        for name in dtp.schema.base_fork_node.get_children_names():
+            self.assertTrue(name in built_non_empty.keys())
+
+        self.assertEqual(built_non_empty['leaf-string'], 'tralala')
+        self.assertEqual(built_non_empty['leaf-float'], float(29.23))
+        self.assertEqual(built_non_empty['leaf-date'], np.datetime64('1993-04-01'))
+
+        try:
+            dtp.build_numpy_value({'non-existent': 29.23})
+        except RuntimeError as e:
+            self.assertEqual(str(e), "Unknown node of name 'non-existent' not specified in the Node 'test-fork'")
+
+        # Case number 2
+        dtp = TreeDataType(schema=self.get_schema_v2())
+
+        built_empty = dtp.build_numpy_value({})
+        for name in dtp.schema.base_fork_node.get_children_names():
+            self.assertTrue(name in built_empty.keys())
+
+        self.assertEqual(built_empty['leaf-string'], 'nan')
+        self.assertTrue(np.isnan(built_empty['leaf-float']))
+        self.assertTrue(np.isnat(built_empty['leaf-date']))
+        self.assertEqual(built_empty['new_child'], 'nan')
+
+        built_non_empty = dtp.build_numpy_value({
+            'leaf-string': 'tralala', 'leaf-float': 29.23, 'leaf-date': '1993-04-01'})
+        for name in dtp.schema.base_fork_node.get_children_names():
+            self.assertTrue(name in built_non_empty.keys())
+
+        self.assertEqual(built_non_empty['leaf-string'], 'tralala')
+        self.assertEqual(built_non_empty['leaf-float'], float(29.23))
+        self.assertEqual(built_non_empty['leaf-date'], np.datetime64('1993-04-01'))
+        self.assertEqual(built_non_empty['new_child'], 'nan')
+
+        try:
+            dtp.build_numpy_value({'non-existent': 29.23})
+        except RuntimeError as e:
+            self.assertEqual(str(e), "Unknown node of name 'non-existent' not specified in the Node 'base'")
+
+        # Case number 3
+        dtp = TreeDataType(schema=self.get_schema_v3())
+
+        built_empty = dtp.build_numpy_value({})
+        for name in dtp.schema.base_fork_node.get_children_names():
+            self.assertTrue(name in built_empty.keys())
+
+        self.assertEqual(built_empty['leaf-string'], 'nan')
+        self.assertTrue(np.isnan(built_empty['leaf-float']))
+        self.assertTrue(np.isnat(built_empty['leaf-date']))
+        self.assertEqual(built_empty['new_child'], 'nan')
+        self.assertEqual(built_empty['level2']['leaf2-string'], 'nan')
+        self.assertTrue(np.isnan(built_empty['level2']['leaf2-float']))
+
+        built_non_empty = dtp.build_numpy_value({
+            'leaf-string': 'tralala', 'leaf-float': 29.23, 'leaf-date': '1993-04-01',
+            'level2': {'leaf2-float': -10.99}})
+        for name in dtp.schema.base_fork_node.get_children_names():
+            self.assertTrue(name in built_non_empty.keys())
+
+        self.assertEqual(built_non_empty['leaf-string'], 'tralala')
+        self.assertEqual(built_non_empty['leaf-float'], float(29.23))
+        self.assertEqual(built_non_empty['leaf-date'], np.datetime64('1993-04-01'))
+        self.assertEqual(built_non_empty['new_child'], 'nan')
+        self.assertEqual(built_non_empty['level2']['leaf2-string'], 'nan')
+        self.assertEqual(built_non_empty['level2']['leaf2-float'], float(-10.99))
+
+        try:
+            dtp.build_numpy_value({'level2': {'non-existent': 29.23}})
+        except RuntimeError as e:
+            self.assertEqual(str(e), "Unknown node of name 'non-existent' not specified in the Node 'level2'")
+
+    def test_build_python_value(self):
+        # Case number 1
+        dtp = TreeDataType(schema=self.get_schema_v1())
+
+        built_empty = dtp.build_python_value({})
+        for name in dtp.schema.base_fork_node.get_children_names():
+            self.assertTrue(name in built_empty.keys())
+
+        self.assertEqual(built_empty['leaf-string'], "None")
+        self.assertTrue(built_empty['leaf-float'] is None)
+        self.assertEqual(built_empty['leaf-date'], '')
+
+        built_non_empty = dtp.build_python_value({
+            'leaf-string': 'tralala', 'leaf-float': 29.23, 'leaf-date': '1993-04-01'})
+        for name in dtp.schema.base_fork_node.get_children_names():
+            self.assertTrue(name in built_non_empty.keys())
+
+        self.assertEqual(built_non_empty['leaf-string'], 'tralala')
+        self.assertEqual(built_non_empty['leaf-float'], float(29.23))
+        self.assertEqual(built_non_empty['leaf-date'], datetime(1993, 4, 1))
+
+        try:
+            dtp.build_python_value({'non-existent': 29.23})
+        except RuntimeError as e:
+            self.assertEqual(str(e), "Unknown node of name 'non-existent' not specified in the Node 'test-fork'")
+
+        # Case number 2
+        dtp = TreeDataType(schema=self.get_schema_v2())
+
+        built_empty = dtp.build_python_value({})
+        for name in dtp.schema.base_fork_node.get_children_names():
+            self.assertTrue(name in built_empty.keys())
+
+        self.assertEqual(built_empty['leaf-string'], "None")
+        self.assertTrue(built_empty['leaf-float'] is None)
+        self.assertEqual(built_empty['leaf-date'], '')
+        self.assertEqual(built_empty['new_child'], 'None')
+
+        built_non_empty = dtp.build_python_value({
+            'leaf-string': 'tralala', 'leaf-float': 29.23, 'leaf-date': '1993-04-01'})
+        for name in dtp.schema.base_fork_node.get_children_names():
+            self.assertTrue(name in built_non_empty.keys())
+
+        self.assertEqual(built_non_empty['leaf-string'], 'tralala')
+        self.assertEqual(built_non_empty['leaf-float'], float(29.23))
+        self.assertEqual(built_non_empty['leaf-date'], datetime(1993, 4, 1))
+        self.assertEqual(built_non_empty['new_child'], 'None')
+
+        try:
+            dtp.build_python_value({'non-existent': 29.23})
+        except RuntimeError as e:
+            self.assertEqual(str(e), "Unknown node of name 'non-existent' not specified in the Node 'base'")
+
+        # Case number 3
+        dtp = TreeDataType(schema=self.get_schema_v3())
+
+        built_empty = dtp.build_python_value({})
+        for name in dtp.schema.base_fork_node.get_children_names():
+            self.assertTrue(name in built_empty.keys())
+
+        self.assertEqual(built_empty['leaf-string'], "None")
+        self.assertTrue(built_empty['leaf-float'] is None)
+        self.assertEqual(built_empty['leaf-date'], '')
+        self.assertEqual(built_empty['new_child'], 'None')
+        self.assertEqual(built_empty['level2']['leaf2-string'], 'None')
+        self.assertTrue(built_empty['level2']['leaf2-float'] is None)
+
+        built_non_empty = dtp.build_python_value({
+            'leaf-string': 'tralala', 'leaf-float': 29.23, 'leaf-date': '1993-04-01',
+            'level2': {'leaf2-float': -10.99}})
+        for name in dtp.schema.base_fork_node.get_children_names():
+            self.assertTrue(name in built_non_empty.keys())
+
+        self.assertEqual(built_non_empty['leaf-string'], 'tralala')
+        self.assertEqual(built_non_empty['leaf-float'], float(29.23))
+        self.assertEqual(built_non_empty['leaf-date'], datetime(1993, 4, 1))
+        self.assertEqual(built_non_empty['new_child'], 'None')
+        self.assertEqual(built_non_empty['level2']['leaf2-string'], 'None')
+        self.assertEqual(built_non_empty['level2']['leaf2-float'], float(-10.99))
+
+        try:
+            dtp.build_python_value({'level2': {'non-existent': 29.23}})
+        except RuntimeError as e:
+            self.assertEqual(str(e), "Unknown node of name 'non-existent' not specified in the Node 'level2'")
