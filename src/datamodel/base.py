@@ -17,7 +17,7 @@ class TreeRow(object):
         """
         Initialize the TreeRow object.
         :param input_row: Dictionary with input data.
-        :param schema: Either None or TreeSchema object speciyfing the input_row types. In case the schema is None,
+        :param schema: Either None or TreeSchema object specifying the input_row types. In case the schema is None,
         the schema will be automatically inferred from the input_row.
         """
         if schema is None:
@@ -68,7 +68,7 @@ class TreeRow(object):
         if not isinstance(input_row, dict):
             try:
                 input_row = dict(input_row)
-            except Exception as e:
+            except Exception:
                 raise RuntimeError("Failed to interpret the input row as dictionary!")
 
         return self.schema.base_fork_node.build_value(input_row)
@@ -91,7 +91,7 @@ class TreeRow(object):
         Helper method which creates a Node object based on the input element.
         :param value: Input value, which's type is being inferred.
         :param name: Name of the Node.
-        :param current_level: Integers specifying the level of the Node in the tree hiearchy.
+        :param current_level: Integers specifying the level of the Node in the tree hierarchy.
         :param within_array: Boolean specifying whether this value is from a list
         :return: Node object with specified type and name
         """
@@ -137,7 +137,7 @@ class TreeRow(object):
         if not isinstance(input_dict, dict):
             try:
                 input_dict = dict(input_dict)
-            except Exception as e:
+            except Exception:
                 raise RuntimeError("Failed to interpret the input row as dictionary!")
 
         return TreeSchema(base_fork_node=self._infer_fork_type(input_dict, initial_name, 1))

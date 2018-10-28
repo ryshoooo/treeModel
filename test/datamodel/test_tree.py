@@ -257,7 +257,7 @@ class TestForkNode(TestCase):
         new_child_2 = ChildNode(name='leaf2-float', data_type=FloatDataType())
         new_fork = ForkNode(name='level2', children=[new_child_1, new_child_2])
         fork_for_test2 = ForkNode(name='test_find_child', children=single_fork2.get_children() + [new_fork])
-        self.assertEqual(single_fork1, single_fork2)
+        self.assertEqual(fork_for_test1, fork_for_test2)
 
 
 class TestTreeSchema(TestCase):
