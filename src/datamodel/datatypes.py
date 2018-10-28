@@ -300,6 +300,9 @@ class ListDataType(DataType):
         if not isinstance(value, (collections.Sequence, np.ndarray)) or isinstance(value, str):
             raise AttributeError("Incorrect format of input value!")
 
+        if isinstance(value, np.ndarray) and value.dtype.type == np.void:
+            value = list(value[0])
+
         input_values = [tuple([self.element_data_types[x].build_numpy_value(value[x])
                                for x in range(len(self.element_data_types))])]
 
@@ -698,6 +701,52 @@ class TreeSchema(object):
             raise AttributeError("Cannot compare TreeSchema with '{}'".format(type(other)))
 
         return self.base_fork_node == other.base_fork_node
+
+    def _traverse(self, fork_node, arr_keys):
+        """
+        Helper method which traverses through the tree.
+        :param fork_node: ForkNode in which we currently are.
+        :param arr_keys: List of strings representing the keys in order to traverse through.
+        :return: Node
+        """
+        if not len(arr_keys):
+            return fork_node
+        else:
+            current_level_key = arr_keys.pop()
+            return self._traverse(fork_node.find_child(current_level_key), arr_keys)
+
+    def find_data_type(self, name):
+        """
+        Method which finds the data type for the specific node. The name has to be of format
+        'level1-name/level2-name/...', i.e. a slash denotes forking.
+        :param name: String
+        :return: DataType
+        """
+        if not isinstance(name, str):
+            raise ValueError("Parameter 'name' has to be a string!")
+
+        arr_keys = name.split("/")
+        arr_keys.reverse()
+        return self._traverse(self.base_fork_node, arr_keys).get_data_type()
+
+    def set_data_type(self, name, data_type):
+        """
+        Method which sets the data type for the specific ndoe. The name has to be of format
+        'level1-name/level2-name'...', i.e. a slash denotes forking.
+        :param name: String
+        :param data_type: DataType
+        :return: TreeSchema
+        """
+        if not isinstance(name, str):
+            raise ValueError("Parameter 'name' has to be a string!")
+        if not isinstance(data_type, DataType):
+            raise ValueError("Parameter 'data_type' has to be a DataType!")
+
+        arr_keys = name.split("/")
+        arr_keys.reverse()
+        self._traverse(self.base_fork_node, arr_keys).set_data_type(data_type)
+
+        return self
 
     def create_dummy_nan_tree(self):
         """

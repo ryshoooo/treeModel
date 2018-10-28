@@ -3,6 +3,7 @@ This module contains base classes and methods for the input data model.
 """
 import collections
 import numpy as np
+from copy import deepcopy
 
 from .datatypes import TreeSchema, ForkNode, ChildNode, FloatDataType, StringDataType, ArrayDataType, ListDataType
 
@@ -43,7 +44,7 @@ class TreeRow(object):
         if self.schema is None:
             raise AttributeError("The schema for the TreeRow is missing!")
 
-        return self.schema
+        return deepcopy(self.schema)
 
     def set_schema(self, schema):
         """

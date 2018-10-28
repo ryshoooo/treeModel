@@ -303,6 +303,58 @@ class TestTreeSchema(TestCase):
         schema2 = TreeSchema(base_fork_node=single_fork)
         self.assertEqual(schema1, schema2)
 
+    def test__traverse(self):
+        single_fork = TestNode.get_fork_node()
+        ts = TreeSchema(base_fork_node=single_fork)
+
+        self.assertEqual(ts._traverse(ts.base_fork_node, ['leaf-float']), single_fork.find_child('leaf-float'))
+
+        new_child_1 = ChildNode(name='leaf2-string', data_type=StringDataType())
+        new_child_2 = ChildNode(name='leaf2-float', data_type=FloatDataType())
+        new_fork = ForkNode(name='level2', children=[new_child_1, new_child_2])
+        fork_for_test = ForkNode(name='test_find_child', children=single_fork.get_children() + [new_fork])
+        ts = TreeSchema(base_fork_node=fork_for_test)
+
+        self.assertEqual(ts._traverse(ts.base_fork_node, ['leaf2-string', 'level2']), new_child_1)
+        self.assertEqual(ts._traverse(ts.base_fork_node, ['leaf2-float', 'level2']), new_child_2)
+
+    def test_find_data_type(self):
+        single_fork = TestNode.get_fork_node()
+        ts = TreeSchema(base_fork_node=single_fork)
+
+        self.assertEqual(ts.find_data_type("leaf-float"), single_fork.find_child('leaf-float').get_data_type())
+
+        new_child_1 = ChildNode(name='leaf2-string', data_type=StringDataType())
+        new_child_2 = ChildNode(name='leaf2-float', data_type=FloatDataType())
+        new_fork = ForkNode(name='level2', children=[new_child_1, new_child_2])
+        fork_for_test = ForkNode(name='test_find_child', children=single_fork.get_children() + [new_fork])
+        ts = TreeSchema(base_fork_node=fork_for_test)
+
+        self.assertEqual(ts.find_data_type('level2/leaf2-string'), new_child_1.get_data_type())
+        self.assertEqual(ts.find_data_type('level2/leaf2-float'), new_child_2.get_data_type())
+
+    def test_set_data_type(self):
+        single_fork = TestNode.get_fork_node()
+        ts = TreeSchema(base_fork_node=single_fork)
+
+        self.assertEqual(ts.find_data_type('leaf-date'), DateDataType(resolution='D'))
+        self.assertEqual(ts.find_data_type('leaf-date'), single_fork.find_child('leaf-date').get_data_type())
+        ts = ts.set_data_type('leaf-date', StringDataType())
+        self.assertEqual(ts.find_data_type('leaf-date'), StringDataType())
+        self.assertEqual(ts.find_data_type('leaf-date'), single_fork.find_child('leaf-date').get_data_type())
+
+        new_child_1 = ChildNode(name='leaf2-string', data_type=StringDataType())
+        new_child_2 = ChildNode(name='leaf2-float', data_type=FloatDataType())
+        new_fork = ForkNode(name='level2', children=[new_child_1, new_child_2])
+        fork_for_test = ForkNode(name='test_find_child', children=single_fork.get_children() + [new_fork])
+        ts = TreeSchema(base_fork_node=fork_for_test)
+
+        self.assertEqual(ts.find_data_type('level2/leaf2-float'), FloatDataType())
+        self.assertEqual(ts.find_data_type('level2/leaf2-float'), new_child_2.get_data_type())
+        ts = ts.set_data_type('level2/leaf2-float', StringDataType())
+        self.assertEqual(ts.find_data_type('level2/leaf2-float'), StringDataType())
+        self.assertEqual(ts.find_data_type('level2/leaf2-float'), new_child_2.get_data_type())
+
 
 class TestTreeDataType(TestCase):
     """

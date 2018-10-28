@@ -2,6 +2,7 @@ from unittest import TestCase
 import os
 import numpy as np
 import json
+import functools
 
 import test.datamodel.testdata as td
 from src.datamodel.base import TreeRow, TreeDataSet
@@ -372,6 +373,33 @@ class TestTreeDataSet(TestCase):
 
         return self._get_schema_from_dict(d_data_types, "base")
 
+    def _assert_arrays(self, arr1, arr2):
+        if isinstance(arr1, (list, tuple)) and isinstance(arr2, (list, tuple)):
+            return arr1 == arr2
+        elif isinstance(arr1, (list, tuple)) and isinstance(arr2, np.ndarray):
+            if arr2.dtype.type == np.void:
+                return arr1 == list(arr2[0])
+            else:
+                return (arr1 == arr2).all()
+        elif isinstance(arr1, np.ndarray):
+            return self._assert_arrays(arr2, arr1)
+        else:
+            raise RuntimeError("Incompatible input types")
+
+    def _assert_equal_dictionaries(self, d1, d2):
+        entries_equal = []
+        for key, value in d1.items():
+            if key not in d2.keys():
+                entries_equal.append(False)
+            elif isinstance(value, dict):
+                entries_equal.append(self._assert_equal_dictionaries(value, d2[key]))
+            elif isinstance(value, (list, tuple, np.ndarray)):
+                entries_equal.append(self._assert_arrays(value, d2[key]))
+            else:
+                entries_equal.append(value == d2[key])
+
+        return all(entries_equal)
+
     def test___init__(self):
         # Same schema
         tds = TreeDataSet(input_rows=self.get_json_data_same_schema())
@@ -385,3 +413,46 @@ class TestTreeDataSet(TestCase):
         tr = TreeDataSet._get_tree_row(input_row=data, schema=None)
         self.assertTrue(isinstance(tr, TreeRow))
         self.assertEqual(expected_schema, tr.schema)
+        self._assert_equal_dictionaries(data, tr.row)
+
+        # Case 2: Dictionary + single schema
+        expected_schema = self.get_schema_for_json_data_same_schema()
+        expected_schema = expected_schema.set_data_type('level1-date',
+                                                        DateDataType(resolution='D', format_string='%Y-%m-%d'))
+        expected_schema = expected_schema.set_data_type('level1-fork/level2-date',
+                                                        DateDataType(resolution='D', format_string='%Y-%m-%d'))
+        schema = tr.get_schema()
+        schema = schema.set_data_type('level1-date', DateDataType(resolution='D', format_string='%Y-%m-%d'))
+        schema = schema.set_data_type('level1-fork/level2-date', DateDataType(resolution='D', format_string='%Y-%m-%d'))
+
+        tr = TreeDataSet._get_tree_row(input_row=data, schema=schema)
+
+        self.assertTrue(isinstance(tr, TreeRow))
+        self.assertEqual(expected_schema, tr.schema)
+        self._assert_equal_dictionaries(data, tr.row)
+
+        # Case 3: TreeRow + no schema
+        tr = TreeRow(input_row=data).build_row(input_row=data)
+        expected_schema = self.get_schema_for_json_data_same_schema()
+        tr = TreeDataSet._get_tree_row(input_row=tr, schema=None)
+        self.assertTrue(isinstance(tr, TreeRow))
+        self.assertEqual(expected_schema, tr.schema)
+        self._assert_equal_dictionaries(data, tr.row)
+
+        # Case 4: TreeRow + schema
+        tr = TreeRow(input_row=data).build_row(input_row=data)
+
+        expected_schema = self.get_schema_for_json_data_same_schema()
+        expected_schema = expected_schema.set_data_type('level1-date',
+                                                        DateDataType(resolution='D', format_string='%Y-%m-%d'))
+        expected_schema = expected_schema.set_data_type('level1-fork/level2-date',
+                                                        DateDataType(resolution='D', format_string='%Y-%m-%d'))
+        schema = tr.get_schema()
+        schema = schema.set_data_type('level1-date', DateDataType(resolution='D', format_string='%Y-%m-%d'))
+        schema = schema.set_data_type('level1-fork/level2-date', DateDataType(resolution='D', format_string='%Y-%m-%d'))
+
+        tr = TreeDataSet._get_tree_row(input_row=tr, schema=schema)
+
+        self.assertTrue(isinstance(tr, TreeRow))
+        self.assertEqual(expected_schema, tr.schema)
+        self._assert_equal_dictionaries(data, tr.row)
