@@ -46,6 +46,17 @@ class TestDataType(TestCase):
         dtp = DataType(numpy_dtype='<a25', python_dtype=bytes, numpy_na_value=None, python_na_value=None)
         self.assertEqual(dtp.build_python_value(10), bytes(10))
 
+    def test_eq(self):
+        dtp1 = DataType(numpy_dtype='<i4', python_dtype=int, numpy_na_value=None, python_na_value=None)
+        dtp2 = DataType(numpy_dtype='<i4', python_dtype=int, numpy_na_value=None, python_na_value=None)
+        self.assertEqual(dtp1, dtp2)
+        dtp1 = DataType(numpy_dtype='<c16', python_dtype=float, numpy_na_value=None, python_na_value=None)
+        dtp2 = DataType(numpy_dtype='<c16', python_dtype=float, numpy_na_value=None, python_na_value=None)
+        self.assertEqual(dtp1, dtp2)
+        dtp1 = DataType(numpy_dtype='<a25', python_dtype=bytes, numpy_na_value=None, python_na_value=None)
+        dtp2 = DataType(numpy_dtype='<a25', python_dtype=bytes, numpy_na_value=None, python_na_value=None)
+        self.assertEqual(dtp1, dtp2)
+
 
 class TestStringDataType(TestCase):
     """
@@ -90,6 +101,14 @@ class TestStringDataType(TestCase):
         dtp = StringDataType()
         self.assertEqual(dtp.build_python_value("tra2"), "tra2")
 
+    def test_eq(self):
+        dtp1 = StringDataType(longest_string=10)
+        dtp2 = StringDataType(longest_string=10)
+        self.assertEqual(dtp1, dtp2)
+        dtp1 = StringDataType(longest_string=10)
+        dtp2 = StringDataType(longest_string=11)
+        self.assertEqual(dtp1, dtp2)
+
 
 class TestFloatDataType(TestCase):
     """
@@ -133,6 +152,14 @@ class TestFloatDataType(TestCase):
         self.assertEqual(dtp.build_python_value("12.3"), float(12.3))
         dtp = FloatDataType()
         self.assertEqual(dtp.build_python_value(9.99), 9.99)
+
+    def test_eq(self):
+        dtp1 = FloatDataType(bits=2)
+        dtp2 = FloatDataType(bits=2)
+        self.assertEqual(dtp1, dtp2)
+        dtp1 = FloatDataType(bits=2)
+        dtp2 = FloatDataType(bits=3)
+        self.assertEqual(dtp1, dtp2)
 
 
 class TestDateDataType(TestCase):
@@ -190,6 +217,20 @@ class TestDateDataType(TestCase):
         dtp = DateDataType(format_string="%Y")
         self.assertEqual(dtp.build_python_value("2018"), datetime.strptime("2018", "%Y"))
 
+    def test_eq(self):
+        dtp1 = DateDataType(resolution='Y', format_string="%Y-%m-%d")
+        dtp2 = DateDataType(resolution='Y', format_string="%Y-%m-%d")
+        self.assertEqual(dtp1, dtp2)
+        dtp1 = DateDataType(resolution='Y', format_string="%Y-%m-%d %H")
+        dtp2 = DateDataType(resolution='Y', format_string="%Y-%m-%d")
+        self.assertEqual(dtp1, dtp2)
+        dtp1 = DateDataType(resolution='D', format_string="%Y-%m-%d %H")
+        dtp2 = DateDataType(resolution='D', format_string="%Y-%m-%d")
+        self.assertEqual(dtp1, dtp2)
+        dtp1 = DateDataType(resolution='D', format_string="%Y-%m-%d %H")
+        dtp2 = DateDataType(resolution='Y', format_string="%Y-%m-%d")
+        self.assertNotEqual(dtp1, dtp2)
+
 
 class TestArrayDataType(TestCase):
     """
@@ -239,6 +280,14 @@ class TestArrayDataType(TestCase):
             (dtp.build_python_value([["tra", "check"], ["what"]])[0] == np.array(["tra", "check"], '<U200')).all())
         self.assertTrue(
             (dtp.build_python_value([["tra", "check"], ["what"]])[1] == np.array(["what"], "<U200")).all())
+
+    def test_eq(self):
+        dtp1 = ArrayDataType(element_data_type=FloatDataType())
+        dtp2 = ArrayDataType(element_data_type=FloatDataType())
+        self.assertEqual(dtp1, dtp2)
+        dtp1 = ArrayDataType(element_data_type=StringDataType())
+        dtp2 = ArrayDataType(element_data_type=FloatDataType())
+        self.assertNotEqual(dtp1, dtp2)
 
 
 class TestListDataType(TestCase):
@@ -331,3 +380,36 @@ class TestListDataType(TestCase):
         self.assertEqual(output_value[1], input_value[1])
         self.assertTrue((output_value[2][0] == input_value[2][0]))
         self.assertEqual(output_value[2][1], input_value[2][1])
+
+    def test_eq(self):
+        dtp1 = ListDataType(element_data_types=[FloatDataType()])
+        dtp2 = ListDataType(element_data_types=[FloatDataType()])
+        self.assertEqual(dtp1, dtp2)
+        dtp1 = ListDataType(element_data_types=[FloatDataType(), StringDataType()])
+        dtp2 = ListDataType(element_data_types=[FloatDataType(), StringDataType()])
+        self.assertEqual(dtp1, dtp2)
+        dtp1 = ListDataType(
+            element_data_types=[
+                FloatDataType(),
+                StringDataType(),
+                ListDataType(
+                    element_data_types=[
+                        ArrayDataType(element_data_type=FloatDataType()),
+                        StringDataType()
+                    ]
+                )
+            ]
+        )
+        dtp2 = ListDataType(
+            element_data_types=[
+                FloatDataType(),
+                StringDataType(),
+                ListDataType(
+                    element_data_types=[
+                        ArrayDataType(element_data_type=FloatDataType()),
+                        StringDataType()
+                    ]
+                )
+            ]
+        )
+        self.assertEqual(dtp1, dtp2)

@@ -57,7 +57,7 @@ class DataType(object):
 
     def build_python_value(self, value):
         """
-        Nethod which converts the input value into the python type value.
+        Method which converts the input value into the python type value.
         :param value: Value to be converted.
         :return: Converted value of the specific data type.
         """
@@ -68,6 +68,13 @@ class DataType(object):
 
     def __str__(self):
         return "DataType"
+
+    def __eq__(self, other):
+        if not isinstance(other, DataType):
+            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+        else:
+            return self.numpy_dtype == other.numpy_dtype and self.numpy_na_value == other.numpy_na_value and \
+                   self.python_dtype == other.python_dtype and self.python_na_value == other.python_na_value
 
 
 class StringDataType(DataType):
@@ -91,6 +98,15 @@ class StringDataType(DataType):
     def __str__(self):
         return "StringDataType"
 
+    def __eq__(self, other):
+        if not isinstance(other, DataType):
+            raise AttributeError("Cannot compare StringDataType to '{}'".format(type(other)))
+        elif not isinstance(other, StringDataType):
+            print("StringDataType is not a {}".format(type(other)))
+            return False
+        else:
+            return True
+
 
 class FloatDataType(DataType):
     """
@@ -111,6 +127,15 @@ class FloatDataType(DataType):
 
     def __str__(self):
         return "FloatDataType"
+
+    def __eq__(self, other):
+        if not isinstance(other, DataType):
+            raise AttributeError("Cannot compare FloatDataType to '{}'".format(type(other)))
+        elif not isinstance(other, FloatDataType):
+            print("FloatDataType is not a {}".format(type(other)))
+            return False
+        else:
+            return True
 
 
 class DateDataType(DataType):
@@ -160,6 +185,15 @@ class DateDataType(DataType):
     def __str__(self):
         return "DateDataType({}, {})".format(self.resolution, self.format_string)
 
+    def __eq__(self, other):
+        if not isinstance(other, DataType):
+            raise AttributeError("Cannot compare DateDataType to '{}'".format(type(other)))
+        elif not isinstance(other, DateDataType):
+            print("DateDataType is not a {}".format(type(other)))
+            return False
+        else:
+            return self.resolution == other.resolution
+
 
 class ArrayDataType(DataType):
     """
@@ -198,7 +232,7 @@ class ArrayDataType(DataType):
 
     def build_python_value(self, value):
         """
-        Nethod which converts the input value into the python type value.
+        Method which converts the input value into the python type value.
         :param value: Value to be converted.
         :return: Converted value of the specific data type.
         """
@@ -210,6 +244,15 @@ class ArrayDataType(DataType):
 
     def __str__(self):
         return """ArrayDataType({})""".format(self.element_data_type)
+
+    def __eq__(self, other):
+        if not isinstance(other, DataType):
+            raise AttributeError("Cannot compare ArrayDataType to '{}'".format(type(other)))
+        elif not isinstance(other, ArrayDataType):
+            print("ArrayDataType is not {}".format(type(other)))
+            return False
+        else:
+            return self.element_data_type == other.element_data_type
 
 
 class ListDataType(DataType):
@@ -257,6 +300,9 @@ class ListDataType(DataType):
         if not isinstance(value, (collections.Sequence, np.ndarray)) or isinstance(value, str):
             raise AttributeError("Incorrect format of input value!")
 
+        if isinstance(value, np.ndarray) and value.dtype.type == np.void:
+            value = list(value[0])
+
         input_values = [tuple([self.element_data_types[x].build_numpy_value(value[x])
                                for x in range(len(self.element_data_types))])]
 
@@ -264,7 +310,7 @@ class ListDataType(DataType):
 
     def build_python_value(self, value):
         """
-        Nethod which converts the input value into the python type value.
+        Method which converts the input value into the python type value.
         :param value: Value to be converted.
         :return: Converted value of the specific data type.
         """
@@ -278,8 +324,21 @@ class ListDataType(DataType):
 
     def __str__(self):
         return str(
-            "ListDataType(\n" + "\t" * self.level + "{}\n" + "\t" * (self.level - 1) + " " * len("ListDataType") + ")") \
-            .format(("\n" + "\t" * self.level).join([str(x) for x in self.element_data_types]))
+            "ListDataType(\n" + "\t" * self.level + "{}\n" + "\t" * (self.level - 1) +
+            " " * len("ListDataType") + ")").format(
+            ("\n" + "\t" * self.level).join([str(x) for x in self.element_data_types]))
+
+    def __eq__(self, other):
+        if not isinstance(other, DataType):
+            raise AttributeError("Cannot compare ListDataType to '{}'".format(type(other)))
+        elif not isinstance(other, ListDataType):
+            print("ListDataType is not a {}".format(type(other)))
+            return False
+        elif len(self.element_data_types) != len(other.element_data_types):
+            print("Non-equal lengths of lists!")
+            return False
+        else:
+            return all([x[0] == x[1] for x in zip(self.element_data_types, other.element_data_types)])
 
 
 #####################################################
@@ -321,7 +380,7 @@ class TreeDataType(DataType):
 
     def build_python_value(self, value):
         """
-        Nethod which converts the input value into the python type value.
+        Method which converts the input value into the python type value.
         :param value: Value to be converted.
         :return: Converted value of the specific data type.
         """
@@ -332,6 +391,15 @@ class TreeDataType(DataType):
 
     def __str__(self):
         return """TreeDataType({})""".format(str(self.schema))
+
+    def __eq__(self, other):
+        if not isinstance(other, DataType):
+            raise AttributeError("Cannot compare TreeDataType to '{}'".format(type(other)))
+        elif not isinstance(other, TreeDataType):
+            print("TreeDataType is not a {}".format(type(other)))
+            return False
+        else:
+            return self.schema == other.schema
 
 
 class Node(object):
@@ -498,8 +566,8 @@ class ForkNode(Node):
             return child_list[0]
         else:
             raise RuntimeError(
-                "Impossible error achieved! More than 1 child found with the same name '{}' in Node '{}'" \
-                    .format(name, self.name))
+                "Impossible error achieved! More than 1 child found with the same "
+                "name '{}' in Node '{}'".format(name, self.name))
 
     def build_value(self, value, method='numpy'):
         """
@@ -537,6 +605,21 @@ class ForkNode(Node):
     def __str__(self):
         return str("{}(\n" + "\t" * self.level + "{}\n" + "\t" * (self.level - 1) + " " * len(self.get_name()) + ")") \
             .format(self.get_name(), ("\n" + "\t" * self.level).join([str(x) for x in self.children]))
+
+    def __eq__(self, other):
+        if not isinstance(other, Node):
+            raise AttributeError("Cannot compare ForkNode with '{}'".format(type(other)))
+        elif not isinstance(other, ForkNode):
+            print("{} is a Fork while {} is a child!".format(self.get_name(), other.get_name()))
+            return False
+
+        if self.get_name() != other.get_name():
+            print("{} does not equal in name to {} in a fork!".format(self.get_name(), other.get_name()))
+            return False
+        else:
+            return all(
+                [child == other.find_child(child.get_name()) if child.get_name() in other.get_children_names() else
+                 False for child in self.get_children()])
 
 
 class ChildNode(Node):
@@ -576,6 +659,22 @@ class ChildNode(Node):
     def __str__(self):
         return """{}({})""".format(self.get_name(), str(self.get_data_type()))
 
+    def __eq__(self, other):
+        if not isinstance(other, Node):
+            raise AttributeError("Cannot compare ChildNode to '{}'".format(type(other)))
+        elif not isinstance(other, ChildNode):
+            print("{} is a child, while {} is a fork".format(self.get_name(), other.get_name()))
+            return False
+
+        if self.get_name() != other.get_name():
+            print("{} does not equal in name to {} in a child!".format(self.get_name(), other.get_name()))
+            return False
+        elif self.get_data_type() != other.get_data_type():
+            print("{}'s data types are different".format(self.get_name()))
+            return False
+        else:
+            return True
+
 
 class TreeSchema(object):
     """
@@ -596,6 +695,58 @@ class TreeSchema(object):
 
     def __str__(self):
         return str(self.base_fork_node)
+
+    def __eq__(self, other):
+        if not isinstance(other, TreeSchema):
+            raise AttributeError("Cannot compare TreeSchema with '{}'".format(type(other)))
+
+        return self.base_fork_node == other.base_fork_node
+
+    def _traverse(self, fork_node, arr_keys):
+        """
+        Helper method which traverses through the tree.
+        :param fork_node: ForkNode in which we currently are.
+        :param arr_keys: List of strings representing the keys in order to traverse through.
+        :return: Node
+        """
+        if not len(arr_keys):
+            return fork_node
+        else:
+            current_level_key = arr_keys.pop()
+            return self._traverse(fork_node.find_child(current_level_key), arr_keys)
+
+    def find_data_type(self, name):
+        """
+        Method which finds the data type for the specific node. The name has to be of format
+        'level1-name/level2-name/...', i.e. a slash denotes forking.
+        :param name: String
+        :return: DataType
+        """
+        if not isinstance(name, str):
+            raise ValueError("Parameter 'name' has to be a string!")
+
+        arr_keys = name.split("/")
+        arr_keys.reverse()
+        return self._traverse(self.base_fork_node, arr_keys).get_data_type()
+
+    def set_data_type(self, name, data_type):
+        """
+        Method which sets the data type for the specific ndoe. The name has to be of format
+        'level1-name/level2-name'...', i.e. a slash denotes forking.
+        :param name: String
+        :param data_type: DataType
+        :return: TreeSchema
+        """
+        if not isinstance(name, str):
+            raise ValueError("Parameter 'name' has to be a string!")
+        if not isinstance(data_type, DataType):
+            raise ValueError("Parameter 'data_type' has to be a DataType!")
+
+        arr_keys = name.split("/")
+        arr_keys.reverse()
+        self._traverse(self.base_fork_node, arr_keys).set_data_type(data_type)
+
+        return self
 
     def create_dummy_nan_tree(self):
         """
