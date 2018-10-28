@@ -1,6 +1,8 @@
 """
 This module contains base classes and methods for the input data model.
 """
+import collections
+import numpy as np
 
 from .datatypes import TreeSchema, ForkNode, ChildNode, FloatDataType, StringDataType, ArrayDataType, ListDataType
 
@@ -32,6 +34,16 @@ class TreeRow(object):
         """
         self.row = self.build_tree(input_row)
         return self
+
+    def get_schema(self):
+        """
+        Getter method for tree's schema.
+        :return: TreeSchema.
+        """
+        if self.schema is None:
+            raise AttributeError("The schema for the TreeRow is missing!")
+
+        return self.schema
 
     def set_schema(self, schema):
         """
@@ -128,3 +140,58 @@ class TreeRow(object):
                 raise RuntimeError("Failed to interpret the input row as dictionary!")
 
         return TreeSchema(base_fork_node=self._infer_fork_type(input_dict, initial_name, 1))
+
+
+class TreeDataSet(object):
+    """
+    Base class for dataset of trees.
+    """
+
+    def __init__(self, input_rows, schema=None):
+        """
+        Initialize the dataset object.
+        :param input_rows: A collection of built TreeRows or python dictionaries.
+        :param schema: Either None or TreeSchema specifying the schema for every row or collection of TreeSchemas
+            specifying the TreeSchema for each input row in order. In case the schema is None, each row will infer the
+            schema automatically.
+        """
+        if not isinstance(input_rows, (collections.Sequence, np.ndarray)) or isinstance(input_rows, str):
+            raise AttributeError("Incorrect format of input rows!")
+
+        for row in input_rows:
+            if not isinstance(row, dict) and not isinstance(row, TreeRow):
+                raise AttributeError("Input rows have to be of dictionary or tree type!")
+
+        if schema is None:
+            self.data = np.array([self._get_tree_row(input_row=row, schema=None) for row in input_rows])
+        elif isinstance(schema, TreeSchema):
+            self.data = np.array([self._get_tree_row(input_row=row, schema=schema) for row in input_rows])
+        elif isinstance(schema, (collections.Sequence, np.ndarray)):
+            self.data = np.array([self._get_tree_row(input_row=input_rows[ind], schema=val)
+                                  for ind, val in enumerate(schema)])
+        else:
+            raise AttributeError("Incorrect format of input schema!")
+
+    @staticmethod
+    def _get_tree_row(input_row, schema):
+        """
+        Helper method to get tree row with specified schema.
+        :param input_row: Either a python dictionary or built TreeRow.
+        :param schema: None or TreeSchema. In case of None, the schema for the row will be inferred automatically.
+        :return: TreeRow with built row.
+        """
+        if isinstance(input_row, TreeRow):
+            if schema is None:
+                return input_row
+            elif isinstance(schema, TreeSchema):
+                input_row = input_row.set_schema(schema)
+                return input_row.build_row(input_row.row)
+            else:
+                raise AttributeError("Input schema parameter is not a TreeSchema object!")
+        else:
+            if schema is None:
+                return TreeRow(input_row=input_row).build_row(input_row=input_row)
+            elif isinstance(schema, TreeSchema):
+                return TreeRow(input_row=input_row, schema=schema).build_row(input_row=input_row)
+            else:
+                raise AttributeError("Input schema parameter is not a TreeSchema object!")

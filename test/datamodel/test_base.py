@@ -1,5 +1,10 @@
 from unittest import TestCase
-from src.datamodel.base import TreeRow
+import os
+import numpy as np
+import json
+
+import test.datamodel.testdata as td
+from src.datamodel.base import TreeRow, TreeDataSet
 from src.datamodel.datatypes import DateDataType, StringDataType, ChildNode, TreeSchema, ForkNode, FloatDataType, \
     ListDataType, ArrayDataType, TreeDataType
 
@@ -66,6 +71,19 @@ class TestTreeRow(TestCase):
         self.assertTrue(tr.row is None)
         tr.build_row({})
         self.assertTrue(tr.row is not None)
+
+    def test_get_schema(self):
+        tr = TreeRow({'foo': "2018-01-01"})
+        self.assertTrue(isinstance(tr.get_schema(), TreeSchema))
+        self.assertTrue("foo" in tr.get_schema().base_fork_node.get_children_names())
+
+        new_schema = TreeSchema(
+            base_fork_node=ForkNode(name='base', children=[
+                ChildNode(name='foo-new', data_type=DateDataType(resolution='D', format_string="%Y-%m-%d"))]))
+        tr.set_schema(new_schema)
+        self.assertTrue(isinstance(tr.get_schema(), TreeSchema))
+        self.assertTrue("foo" not in tr.get_schema().base_fork_node.get_children_names())
+        self.assertTrue("foo-new" in tr.get_schema().base_fork_node.get_children_names())
 
     def test_set_schema(self):
         tr = TreeRow({'foo': "2018-01-01"})
@@ -188,3 +206,182 @@ class TestTreeRow(TestCase):
         ], level=1))
 
         self.assertEqual(str(expected_output), str(tr.infer_schema(input_dict)))
+
+
+class TestTreeDataSet(TestCase):
+    """
+    Test class for tree dataset.
+    """
+
+    @staticmethod
+    def get_test_data_path():
+        return os.path.abspath(td.__file__).replace("__init__.py", "")
+
+    @staticmethod
+    def generate_json_data_same_schema(file_path, num=100):
+        with open(file_path, "w") as fp:
+            for num_line in range(num):
+                to_dump = {
+                    "level1-string": str(np.random.choice(["A", "B", "C", "D", "R"], replace=False)),
+                    "level1-float": float(np.random.random()),
+                    "level1-date": str(np.random.choice(["{}-04-01".format(year) for year in range(1993, 2019)])),
+                    "level1-array_float": [float(x) for x in np.random.random(10)],
+                    "level1-array_string": [str(x) for x in
+                                            np.random.choice(a=["A", "B", "C", "D", "R"], size=10, replace=True)],
+                    "level1-list_float_string": [float(x) for x in np.random.random(5)] +
+                                                [str(x) for x in
+                                                 np.random.choice(a=["A", "B", "C", "D", "R"], size=5, replace=True)],
+                    "level1-fork": {
+                        "level2-string": str(np.random.choice(["A", "B", "C", "D", "R"], replace=False)),
+                        "level2-float": float(np.random.random()),
+                        "level2-date": str(np.random.choice(["{}-04-01".format(year) for year in range(1993, 2019)])),
+                        "level2-array_float": [float(x) for x in np.random.random(10)],
+                        "level2-array_string": [str(x) for x in
+                                                np.random.choice(a=["A", "B", "C", "D", "R"], size=10, replace=True)],
+                        "level2-list_float_string": [float(x) for x in np.random.random(5)] +
+                                                    [str(x) for x in
+                                                     np.random.choice(a=["A", "B", "C", "D", "R"], size=5,
+                                                                      replace=True)],
+                    },
+                    "level1-fork2": {
+                        "level2-float": float(np.random.random()),
+                        "level2-fork": {
+                            "level3-float": float(np.random.random()),
+                            "level3-array_tree": [
+                                {
+                                    "level3-array-float": float(np.random.random()),
+                                    "level3-array-string": str(
+                                        np.random.choice(["A", "B", "C", "D", "R"], replace=False))
+                                } for x in range(10)
+                            ],
+                            "level3-list_tree": [
+                                                    {
+                                                        "level3-list-float": float(np.random.random()),
+                                                        "level3-list-string": str(
+                                                            np.random.choice(["A", "B", "C", "D", "R"], replace=False))
+                                                    } for x in range(5)
+                                                ] + [
+                                                    {
+                                                        "level3-list-date": str(np.random.choice(
+                                                            ["{}-04-01".format(year) for year in range(1993, 2019)])),
+                                                        "level3-list-string": str(
+                                                            np.random.choice(["A", "B", "C", "D", "R"], replace=False))
+                                                    } for x in range(5)
+                                                ]
+                        }
+                    }
+                }
+                if num_line == num - 1:
+                    fp.write(json.dumps(to_dump))
+                else:
+                    fp.write(json.dumps(to_dump) + "\n")
+
+    @staticmethod
+    def load_json_file(file_path):
+        with open(file_path, "r") as fp:
+            res = []
+            for line in fp:
+                d = json.loads(line)
+                res.append(d)
+
+        return res
+
+    def get_json_data_same_schema(self, overwrite=False):
+        test_data_path = self.get_test_data_path() + "test_data_same_schema.json"
+
+        if os.path.exists(test_data_path) and not overwrite:
+            return self.load_json_file(test_data_path)
+        else:
+            self.generate_json_data_same_schema(test_data_path)
+            return self.load_json_file(test_data_path)
+
+    def _get_schema_from_dict(self, d, key):
+        sorted_children_names = sorted(d.keys())
+        children = []
+        for name in sorted_children_names:
+            if isinstance(d[name], dict):
+                children.append(self._get_schema_from_dict(d[name], name).base_fork_node)
+            else:
+                children.append(ChildNode(name=name, data_type=d[name]))
+
+        return TreeSchema(base_fork_node=ForkNode(name=key, children=children))
+
+    def get_schema_for_json_data_same_schema(self):
+        d_data_types = {
+            "level1-string": StringDataType(),
+            "level1-float": FloatDataType(),
+            "level1-date": StringDataType(),
+            "level1-array_float": ArrayDataType(FloatDataType()),
+            "level1-array_string": ArrayDataType(StringDataType()),
+            "level1-list_float_string": ListDataType([FloatDataType()] * 5 + [StringDataType()] * 5),
+            "level1-fork": {
+                "level2-string": StringDataType(),
+                "level2-float": FloatDataType(),
+                "level2-date": StringDataType(),
+                "level2-array_float": ArrayDataType(FloatDataType()),
+                "level2-array_string": ArrayDataType(StringDataType()),
+                "level2-list_float_string": ListDataType([FloatDataType()] * 5 + [StringDataType()] * 5),
+            },
+            "level1-fork2": {
+                "level2-float": FloatDataType(),
+                "level2-fork": {
+                    "level3-float": FloatDataType(),
+                    "level3-array_tree": ArrayDataType(
+                        TreeDataType(
+                            schema=TreeSchema(
+                                base_fork_node=ForkNode(
+                                    name="level3-array_tree",
+                                    children=[
+                                        ChildNode(name="level3-array-float", data_type=FloatDataType()),
+                                        ChildNode(name="level3-array-string", data_type=StringDataType())
+                                    ]
+                                )
+                            )
+                        )
+                    ),
+                    "level3-list_tree": ListDataType(
+                        [
+                            TreeDataType(
+                                schema=TreeSchema(
+                                    base_fork_node=ForkNode(
+                                        name="level3-list_tree_{}".format(x),
+                                        children=[
+                                            ChildNode(name="level3-list-float", data_type=FloatDataType()),
+                                            ChildNode(name="level3-list-string", data_type=StringDataType())
+                                        ]
+                                    )
+                                )
+                            )
+                            for x in range(0, 5)] + [
+                            TreeDataType(
+                                schema=TreeSchema(
+                                    base_fork_node=ForkNode(
+                                        name="level3-list_tree_{}".format(x),
+                                        children=[
+                                            ChildNode(name="level3-list-date", data_type=StringDataType()),
+                                            ChildNode(name="level3-list-string", data_type=StringDataType())
+                                        ]
+                                    )
+                                )
+                            )
+                            for x in range(5, 10)]
+                    )
+                }
+            }
+        }
+
+        return self._get_schema_from_dict(d_data_types, "base")
+
+    def test___init__(self):
+        # Same schema
+        tds = TreeDataSet(input_rows=self.get_json_data_same_schema())
+        self.assertEqual(len(set([str(x.schema) for x in tds.data])), 1)
+
+    def test__get_tree_row(self):
+        data = self.get_json_data_same_schema()[0]
+
+        # Case 1: Dictionary + no schema
+        expected_schema = self.get_schema_for_json_data_same_schema()
+        tr = TreeDataSet._get_tree_row(input_row=data, schema=None)
+        self.assertTrue(isinstance(tr, TreeRow))
+        self.assertEqual(expected_schema, tr.schema)

@@ -69,6 +69,13 @@ class DataType(object):
     def __str__(self):
         return "DataType"
 
+    def __eq__(self, other):
+        if not isinstance(other, DataType):
+            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+        else:
+            return self.numpy_dtype == other.numpy_dtype and self.numpy_na_value == other.numpy_na_value and \
+                   self.python_dtype == other.python_dtype and self.python_na_value == other.python_na_value
+
 
 class StringDataType(DataType):
     """
@@ -91,6 +98,15 @@ class StringDataType(DataType):
     def __str__(self):
         return "StringDataType"
 
+    def __eq__(self, other):
+        if not isinstance(other, DataType):
+            raise AttributeError("Cannot compare StringDataType to '{}'".format(type(other)))
+        elif not isinstance(other, StringDataType):
+            print("StringDataType is not a {}".format(type(other)))
+            return False
+        else:
+            return True
+
 
 class FloatDataType(DataType):
     """
@@ -111,6 +127,15 @@ class FloatDataType(DataType):
 
     def __str__(self):
         return "FloatDataType"
+
+    def __eq__(self, other):
+        if not isinstance(other, DataType):
+            raise AttributeError("Cannot compare FloatDataType to '{}'".format(type(other)))
+        elif not isinstance(other, FloatDataType):
+            print("FloatDataType is not a {}".format(type(other)))
+            return False
+        else:
+            return True
 
 
 class DateDataType(DataType):
@@ -159,6 +184,15 @@ class DateDataType(DataType):
 
     def __str__(self):
         return "DateDataType({}, {})".format(self.resolution, self.format_string)
+
+    def __eq__(self, other):
+        if not isinstance(other, DataType):
+            raise AttributeError("Cannot compare DateDataType to '{}'".format(type(other)))
+        elif not isinstance(other, DateDataType):
+            print("DateDataType is not a {}".format(type(other)))
+            return False
+        else:
+            return self.resolution == other.resolution
 
 
 class ArrayDataType(DataType):
@@ -210,6 +244,15 @@ class ArrayDataType(DataType):
 
     def __str__(self):
         return """ArrayDataType({})""".format(self.element_data_type)
+
+    def __eq__(self, other):
+        if not isinstance(other, DataType):
+            raise AttributeError("Cannot compare ArrayDataType to '{}'".format(type(other)))
+        elif not isinstance(other, ArrayDataType):
+            print("ArrayDataType is not {}".format(type(other)))
+            return False
+        else:
+            return self.element_data_type == other.element_data_type
 
 
 class ListDataType(DataType):
@@ -282,6 +325,18 @@ class ListDataType(DataType):
             " " * len("ListDataType") + ")").format(
             ("\n" + "\t" * self.level).join([str(x) for x in self.element_data_types]))
 
+    def __eq__(self, other):
+        if not isinstance(other, DataType):
+            raise AttributeError("Cannot compare ListDataType to '{}'".format(type(other)))
+        elif not isinstance(other, ListDataType):
+            print("ListDataType is not a {}".format(type(other)))
+            return False
+        elif len(self.element_data_types) != len(other.element_data_types):
+            print("Non-equal lengths of lists!")
+            return False
+        else:
+            return all([x[0] == x[1] for x in zip(self.element_data_types, other.element_data_types)])
+
 
 #####################################################
 #              TREE FUNCTIONALITY                   #
@@ -333,6 +388,15 @@ class TreeDataType(DataType):
 
     def __str__(self):
         return """TreeDataType({})""".format(str(self.schema))
+
+    def __eq__(self, other):
+        if not isinstance(other, DataType):
+            raise AttributeError("Cannot compare TreeDataType to '{}'".format(type(other)))
+        elif not isinstance(other, TreeDataType):
+            print("TreeDataType is not a {}".format(type(other)))
+            return False
+        else:
+            return self.schema == other.schema
 
 
 class Node(object):
@@ -539,6 +603,21 @@ class ForkNode(Node):
         return str("{}(\n" + "\t" * self.level + "{}\n" + "\t" * (self.level - 1) + " " * len(self.get_name()) + ")") \
             .format(self.get_name(), ("\n" + "\t" * self.level).join([str(x) for x in self.children]))
 
+    def __eq__(self, other):
+        if not isinstance(other, Node):
+            raise AttributeError("Cannot compare ForkNode with '{}'".format(type(other)))
+        elif not isinstance(other, ForkNode):
+            print("{} is a Fork while {} is a child!".format(self.get_name(), other.get_name()))
+            return False
+
+        if self.get_name() != other.get_name():
+            print("{} does not equal in name to {} in a fork!".format(self.get_name(), other.get_name()))
+            return False
+        else:
+            return all(
+                [child == other.find_child(child.get_name()) if child.get_name() in other.get_children_names() else
+                 False for child in self.get_children()])
+
 
 class ChildNode(Node):
     """
@@ -577,6 +656,22 @@ class ChildNode(Node):
     def __str__(self):
         return """{}({})""".format(self.get_name(), str(self.get_data_type()))
 
+    def __eq__(self, other):
+        if not isinstance(other, Node):
+            raise AttributeError("Cannot compare ChildNode to '{}'".format(type(other)))
+        elif not isinstance(other, ChildNode):
+            print("{} is a child, while {} is a fork".format(self.get_name(), other.get_name()))
+            return False
+
+        if self.get_name() != other.get_name():
+            print("{} does not equal in name to {} in a child!".format(self.get_name(), other.get_name()))
+            return False
+        elif self.get_data_type() != other.get_data_type():
+            print("{}'s data types are different".format(self.get_name()))
+            return False
+        else:
+            return True
+
 
 class TreeSchema(object):
     """
@@ -597,6 +692,12 @@ class TreeSchema(object):
 
     def __str__(self):
         return str(self.base_fork_node)
+
+    def __eq__(self, other):
+        if not isinstance(other, TreeSchema):
+            raise AttributeError("Cannot compare TreeSchema with '{}'".format(type(other)))
+
+        return self.base_fork_node == other.base_fork_node
 
     def create_dummy_nan_tree(self):
         """
