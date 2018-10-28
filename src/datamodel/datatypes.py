@@ -57,7 +57,7 @@ class DataType(object):
 
     def build_python_value(self, value):
         """
-        Nethod which converts the input value into the python type value.
+        Method which converts the input value into the python type value.
         :param value: Value to be converted.
         :return: Converted value of the specific data type.
         """
@@ -198,7 +198,7 @@ class ArrayDataType(DataType):
 
     def build_python_value(self, value):
         """
-        Nethod which converts the input value into the python type value.
+        Method which converts the input value into the python type value.
         :param value: Value to be converted.
         :return: Converted value of the specific data type.
         """
@@ -264,7 +264,7 @@ class ListDataType(DataType):
 
     def build_python_value(self, value):
         """
-        Nethod which converts the input value into the python type value.
+        Method which converts the input value into the python type value.
         :param value: Value to be converted.
         :return: Converted value of the specific data type.
         """
@@ -278,8 +278,9 @@ class ListDataType(DataType):
 
     def __str__(self):
         return str(
-            "ListDataType(\n" + "\t" * self.level + "{}\n" + "\t" * (self.level - 1) + " " * len("ListDataType") + ")") \
-            .format(("\n" + "\t" * self.level).join([str(x) for x in self.element_data_types]))
+            "ListDataType(\n" + "\t" * self.level + "{}\n" + "\t" * (self.level - 1) +
+            " " * len("ListDataType") + ")").format(
+            ("\n" + "\t" * self.level).join([str(x) for x in self.element_data_types]))
 
 
 #####################################################
@@ -321,7 +322,7 @@ class TreeDataType(DataType):
 
     def build_python_value(self, value):
         """
-        Nethod which converts the input value into the python type value.
+        Method which converts the input value into the python type value.
         :param value: Value to be converted.
         :return: Converted value of the specific data type.
         """
@@ -498,8 +499,8 @@ class ForkNode(Node):
             return child_list[0]
         else:
             raise RuntimeError(
-                "Impossible error achieved! More than 1 child found with the same name '{}' in Node '{}'" \
-                    .format(name, self.name))
+                "Impossible error achieved! More than 1 child found with the same "
+                "name '{}' in Node '{}'".format(name, self.name))
 
     def build_value(self, value, method='numpy'):
         """
