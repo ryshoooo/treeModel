@@ -9,7 +9,7 @@ from src.datamodel.datatypes import DateDataType, StringDataType, ChildNode, Tre
     ListDataType, ArrayDataType, TreeDataType
 
 
-class DataGeneratorClass(object):
+class DataGenerator(object):
     """
     Generator and repository of data used for testing.
     """
@@ -347,7 +347,7 @@ class TestTreeDataSet(TestCase):
     def generate_json_data_same_schema(file_path, num=100):
         with open(file_path, "w") as fp:
             for num_line in range(num):
-                to_dump = DataGeneratorClass.base_dict_json_same_schema()
+                to_dump = DataGenerator.base_dict_json_same_schema()
                 if num_line == num - 1:
                     fp.write(json.dumps(to_dump))
                 else:
@@ -380,7 +380,7 @@ class TestTreeDataSet(TestCase):
         return TreeSchema(base_fork_node=ForkNode(name=key, children=children))
 
     def get_schema_for_json_data_same_schema(self):
-        d_data_types = DataGeneratorClass.base_dict_json_same_schema_types()
+        d_data_types = DataGenerator.base_dict_json_same_schema_types()
         
         return self._get_schema_from_dict(d_data_types, "base")
 
