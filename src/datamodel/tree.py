@@ -479,11 +479,4 @@ class TreeSchema(object):
         Create dummy tree with NaN values.
         :return: Dictionary
         """
-        res = {}
-        for name in self.base_fork_node.get_children_names():
-            child_data_type = self.base_fork_node.find_child(name).get_data_type()
-            if not isinstance(child_data_type, TreeDataType):
-                res[name] = child_data_type.build_numpy_value(child_data_type.numpy_na_value)
-            else:
-                res[name] = child_data_type.schema.create_dummy_nan_tree()
-        return res
+        return self.base_fork_node.build_value(value={}, method='numpy')
