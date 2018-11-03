@@ -5,8 +5,8 @@ import json
 
 import test.datamodel.testdata as td
 from src.datamodel.base import TreeRow, TreeDataSet
-from src.datamodel.datatypes import DateDataType, StringDataType, ChildNode, TreeSchema, ForkNode, FloatDataType, \
-    ListDataType, ArrayDataType, TreeDataType
+from src.datamodel.datatypes import DateDataType, StringDataType, FloatDataType, ListDataType, ArrayDataType
+from src.datamodel.tree import ChildNode, TreeSchema, ForkNode, TreeDataType
 
 
 class DataGenerator(object):
@@ -381,7 +381,7 @@ class TestTreeDataSet(TestCase):
 
     def get_schema_for_json_data_same_schema(self):
         d_data_types = DataGenerator.base_dict_json_same_schema_types()
-        
+
         return self._get_schema_from_dict(d_data_types, "base")
 
     def _assert_arrays(self, arr1, arr2):

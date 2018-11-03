@@ -5,7 +5,8 @@ import collections
 import numpy as np
 from copy import deepcopy
 
-from .datatypes import TreeSchema, ForkNode, ChildNode, FloatDataType, StringDataType, ArrayDataType, ListDataType
+from .datatypes import FloatDataType, StringDataType, ArrayDataType, ListDataType
+from .tree import TreeSchema, ForkNode, ChildNode
 
 
 class TreeRow(object):
