@@ -3,6 +3,7 @@ from copy import deepcopy, copy
 from functools import reduce
 import collections
 import numpy as np
+from warnings import warn
 
 
 #####################################################
@@ -59,7 +60,7 @@ class TreeDataType(DataType):
         if not isinstance(other, DataType):
             raise AttributeError("Cannot compare TreeDataType to '{}'".format(type(other)))
         elif not isinstance(other, TreeDataType):
-            print("TreeDataType is not a {}".format(type(other)))
+            warn("TreeDataType is not a {}".format(type(other)), UserWarning)
             return False
         else:
             return self.schema == other.schema
@@ -274,11 +275,11 @@ class ForkNode(Node):
         if not isinstance(other, Node):
             raise AttributeError("Cannot compare ForkNode with '{}'".format(type(other)))
         elif not isinstance(other, ForkNode):
-            print("{} is a Fork while {} is a child!".format(self.get_name(), other.get_name()))
+            warn("{} is a Fork while {} is a child!".format(self.get_name(), other.get_name()), UserWarning)
             return False
 
         if self.get_name() != other.get_name():
-            print("{} does not equal in name to {} in a fork!".format(self.get_name(), other.get_name()))
+            warn("{} does not equal in name to {} in a fork!".format(self.get_name(), other.get_name()), UserWarning)
             return False
         else:
             return all(
@@ -309,9 +310,10 @@ class ForkNode(Node):
                     elif child.get_data_type() >= possibles[0].get_data_type():
                         common_children.append(deepcopy(child))
                     else:
-                        print("Data types of child '{}' are incomparable: {}, {}".format(child.get_name(),
-                                                                                         child.get_data_type(),
-                                                                                         possibles[0].get_data_type()))
+                        warn("Data types of child '{}' are incomparable: {}, {}".format(child.get_name(),
+                                                                                        child.get_data_type(),
+                                                                                        possibles[0].get_data_type()),
+                             UserWarning)
                         continue
                 else:
                     raise ValueError("Incompatible type of a child: '{}'".format(type(child)))
@@ -363,14 +365,14 @@ class ChildNode(Node):
         if not isinstance(other, Node):
             raise AttributeError("Cannot compare ChildNode to '{}'".format(type(other)))
         elif not isinstance(other, ChildNode):
-            print("{} is a child, while {} is a fork".format(self.get_name(), other.get_name()))
+            warn("{} is a child, while {} is a fork".format(self.get_name(), other.get_name()), UserWarning)
             return False
 
         if self.get_name() != other.get_name():
-            print("{} does not equal in name to {} in a child!".format(self.get_name(), other.get_name()))
+            warn("{} does not equal in name to {} in a child!".format(self.get_name(), other.get_name()), UserWarning)
             return False
         elif self.get_data_type() != other.get_data_type():
-            print("{}'s data types are different".format(self.get_name()))
+            warn("{}'s data types are different".format(self.get_name()), UserWarning)
             return False
         else:
             return True

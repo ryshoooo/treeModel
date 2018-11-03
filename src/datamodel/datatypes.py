@@ -2,6 +2,7 @@ import numpy as np
 import collections
 from datetime import datetime
 from copy import deepcopy
+from warnings import warn
 
 
 #####################################################
@@ -127,7 +128,7 @@ class StringDataType(DataType):
         if not isinstance(other, DataType):
             raise AttributeError("Cannot compare StringDataType to '{}'".format(type(other)))
         elif not isinstance(other, StringDataType):
-            print("StringDataType is not a {}".format(type(other)))
+            warn(message="StringDataType is not a {}".format(type(other)), category=UserWarning)
             return False
         else:
             return True
@@ -205,7 +206,7 @@ class FloatDataType(DataType):
         if not isinstance(other, DataType):
             raise AttributeError("Cannot compare FloatDataType to '{}'".format(type(other)))
         elif not isinstance(other, FloatDataType):
-            print("FloatDataType is not a {}".format(type(other)))
+            warn("FloatDataType is not a {}".format(type(other)), UserWarning)
             return False
         else:
             return True
@@ -298,7 +299,7 @@ class DateDataType(DataType):
         if not isinstance(other, DataType):
             raise AttributeError("Cannot compare DateDataType to '{}'".format(type(other)))
         elif not isinstance(other, DateDataType):
-            print("DateDataType is not a {}".format(type(other)))
+            warn("DateDataType is not a {}".format(type(other)), UserWarning)
             return False
         else:
             return self.resolution == other.resolution
@@ -398,7 +399,7 @@ class ArrayDataType(DataType):
         if not isinstance(other, DataType):
             raise AttributeError("Cannot compare ArrayDataType to '{}'".format(type(other)))
         elif not isinstance(other, ArrayDataType):
-            print("ArrayDataType is not {}".format(type(other)))
+            warn("ArrayDataType is not {}".format(type(other)), UserWarning)
             return False
         else:
             return self.element_data_type == other.element_data_type
@@ -529,10 +530,10 @@ class ListDataType(DataType):
         if not isinstance(other, DataType):
             raise AttributeError("Cannot compare ListDataType to '{}'".format(type(other)))
         elif not isinstance(other, ListDataType):
-            print("ListDataType is not a {}".format(type(other)))
+            warn("ListDataType is not a {}".format(type(other)), UserWarning)
             return False
         elif len(self.element_data_types) != len(other.element_data_types):
-            print("Non-equal lengths of lists!")
+            warn("Non-equal lengths of lists!", UserWarning)
             return False
         else:
             return all([x[0] == x[1] for x in zip(self.element_data_types, other.element_data_types)])
