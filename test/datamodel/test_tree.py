@@ -2,8 +2,8 @@ from unittest import TestCase
 from datetime import datetime
 import numpy as np
 
-from src.datamodel.datatypes import ChildNode, ForkNode, TreeSchema
-from src.datamodel.datatypes import StringDataType, FloatDataType, DateDataType, TreeDataType
+from src.datamodel.tree import ChildNode, ForkNode, TreeSchema, TreeDataType
+from src.datamodel.datatypes import StringDataType, FloatDataType, DateDataType
 
 
 class TestNode(TestCase):
@@ -315,8 +315,8 @@ class TestTreeSchema(TestCase):
         fork_for_test = ForkNode(name='test_find_child', children=single_fork.get_children() + [new_fork])
         ts = TreeSchema(base_fork_node=fork_for_test)
 
-        self.assertEqual(ts._traverse(ts.base_fork_node, ['leaf2-string', 'level2']), new_child_1)
-        self.assertEqual(ts._traverse(ts.base_fork_node, ['leaf2-float', 'level2']), new_child_2)
+        self.assertEqual(ts._traverse(ts.base_fork_node, ['level2', 'leaf2-string']), new_child_1)
+        self.assertEqual(ts._traverse(ts.base_fork_node, ['level2', 'leaf2-float']), new_child_2)
 
     def test_find_data_type(self):
         single_fork = TestNode.get_fork_node()
@@ -353,7 +353,37 @@ class TestTreeSchema(TestCase):
         self.assertEqual(ts.find_data_type('level2/leaf2-float'), new_child_2.get_data_type())
         ts = ts.set_data_type('level2/leaf2-float', StringDataType())
         self.assertEqual(ts.find_data_type('level2/leaf2-float'), StringDataType())
-        self.assertEqual(ts.find_data_type('level2/leaf2-float'), new_child_2.get_data_type())
+
+    def test_mul(self):
+        fork_1_string = ForkNode(name="base", children=[TestNode.get_single_string_leaf()])
+        fork_1_float = ForkNode(name="base2", children=[TestNode.get_single_float_leaf()])
+        ts_string = TreeSchema(base_fork_node=fork_1_string)
+        ts_float = TreeSchema(base_fork_node=fork_1_float)
+
+        ts_mul = ts_string * ts_float
+        self.assertEqual(ts_mul.base_fork_node.get_name(), "empty")
+        self.assertEqual(len(ts_mul.base_fork_node.get_children()), 0)
+
+        fork_1_string = ForkNode(name="base", children=[TestNode.get_single_string_leaf()])
+        fork_1_float = ForkNode(name="base", children=[TestNode.get_single_float_leaf()])
+        ts_string = TreeSchema(base_fork_node=fork_1_string)
+        ts_float = TreeSchema(base_fork_node=fork_1_float)
+
+        ts_mul = ts_string * ts_float
+        self.assertEqual(ts_mul.base_fork_node.get_name(), "base")
+        self.assertEqual(len(ts_mul.base_fork_node.get_children()), 0)
+
+        fork_1_string = ForkNode(name="base", children=[TestNode.get_single_string_leaf().set_name("foo")])
+        fork_1_float = ForkNode(name="base", children=[TestNode.get_single_float_leaf().set_name("foo")])
+        ts_string = TreeSchema(base_fork_node=fork_1_string)
+        ts_float = TreeSchema(base_fork_node=fork_1_float)
+
+        ts_mul = ts_string * ts_float
+        self.assertEqual(ts_mul.base_fork_node.get_name(), "base")
+        self.assertEqual(len(ts_mul.base_fork_node.get_children()), 1)
+        self.assertTrue(
+            ts_mul.base_fork_node.get_children()[0] == TestNode.get_single_string_leaf().set_name(
+                "foo"))
 
 
 class TestTreeDataType(TestCase):

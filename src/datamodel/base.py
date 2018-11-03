@@ -5,7 +5,8 @@ import collections
 import numpy as np
 from copy import deepcopy
 
-from .datatypes import TreeSchema, ForkNode, ChildNode, FloatDataType, StringDataType, ArrayDataType, ListDataType
+from .datatypes import FloatDataType, StringDataType, ArrayDataType, ListDataType
+from .tree import TreeSchema, ForkNode, ChildNode
 
 
 class TreeRow(object):
@@ -160,12 +161,10 @@ class TreeDataSet(object):
             raise AttributeError("Incorrect format of input rows!")
 
         for row in input_rows:
-            if not isinstance(row, dict) and not isinstance(row, TreeRow):
+            if not isinstance(row, (dict, TreeRow)):
                 raise AttributeError("Input rows have to be of dictionary or tree type!")
 
-        if schema is None:
-            self.data = np.array([self._get_tree_row(input_row=row, schema=None) for row in input_rows])
-        elif isinstance(schema, TreeSchema):
+        if schema is None or isinstance(schema, TreeSchema):
             self.data = np.array([self._get_tree_row(input_row=row, schema=schema) for row in input_rows])
         elif isinstance(schema, (collections.Sequence, np.ndarray)):
             self.data = np.array([self._get_tree_row(input_row=input_rows[ind], schema=val)
