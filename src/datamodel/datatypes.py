@@ -1,6 +1,7 @@
 import numpy as np
 import collections
 from datetime import datetime
+from copy import deepcopy
 
 
 #####################################################
@@ -317,8 +318,8 @@ class ArrayDataType(DataType):
         if not isinstance(element_data_type, DataType):
             raise AttributeError("The array element has to be of DataType instance!")
 
-        self.element_data_type = element_data_type
-        self.element_numpy_type = element_data_type.get_numpy_type()
+        self.element_data_type = deepcopy(element_data_type)
+        self.element_numpy_type = self.element_data_type.get_numpy_type()
 
         if nullable:
             super(ArrayDataType, self).__init__(np.ndarray, list,
@@ -422,7 +423,7 @@ class ListDataType(DataType):
             if not isinstance(element, DataType):
                 raise AttributeError("Elements of the list have to be of DataType instance!")
 
-        self.element_data_types = element_data_types
+        self.element_data_types = deepcopy(element_data_types)
         self.element_numpy_types = self._get_numpy_dtypes()
         self.level = level
 

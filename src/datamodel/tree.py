@@ -1,5 +1,5 @@
 from .datatypes import DataType, StringDataType, ListDataType
-from copy import deepcopy
+from copy import deepcopy, copy
 from functools import reduce
 import collections
 import numpy as np
@@ -24,7 +24,7 @@ class TreeDataType(DataType):
         if not isinstance(schema, TreeSchema):
             raise AttributeError("Input schema has to be an instance of TreeSchema!")
 
-        self.schema = schema
+        self.schema = copy(schema)
 
         if nullable:
             super(TreeDataType, self).__init__(dict, dict, {}, {})
@@ -39,7 +39,6 @@ class TreeDataType(DataType):
         """
         if not isinstance(value, dict):
             raise AttributeError("Cannot build non-dictionary-like input in TreeDataType!")
-
         return self.schema.base_fork_node.build_value(self.get_numpy_type().type(value), 'numpy')
 
     def build_python_value(self, value):
@@ -52,10 +51,6 @@ class TreeDataType(DataType):
             raise AttributeError("Cannot build non-dictionary-like input in TreeDataType!")
 
         return self.schema.base_fork_node.build_value(self.get_python_type()(value), 'python')
-
-    @staticmethod
-    def is_comparable(other):
-        return isinstance(other, StringDataType, ListDataType)
 
     def __str__(self):
         return """TreeDataType({})""".format(str(self.schema))
@@ -141,7 +136,7 @@ class Node(object):
         """
         if not isinstance(data_type, DataType):
             raise AttributeError("Parameter data_type has to be an instance of DataType object!")
-        self.data_type = data_type
+        self.data_type = deepcopy(data_type)
 
         return self
 
@@ -175,7 +170,7 @@ class ForkNode(Node):
             if not isinstance(child, Node):
                 raise AttributeError("Nodes have to be of Node instance!")
 
-        self.children = children
+        self.children = deepcopy(children)
 
         if not isinstance(name, str):
             raise AttributeError("The name of the node has to be a string!")
@@ -357,7 +352,7 @@ class ChildNode(Node):
         if not isinstance(data_type, DataType):
             raise AttributeError("Unsupported input data type: '{}'".format(data_type))
 
-        self.data_type = data_type
+        self.data_type = deepcopy(data_type)
 
         return self
 

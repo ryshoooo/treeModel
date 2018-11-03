@@ -353,7 +353,6 @@ class TestTreeSchema(TestCase):
         self.assertEqual(ts.find_data_type('level2/leaf2-float'), new_child_2.get_data_type())
         ts = ts.set_data_type('level2/leaf2-float', StringDataType())
         self.assertEqual(ts.find_data_type('level2/leaf2-float'), StringDataType())
-        self.assertEqual(ts.find_data_type('level2/leaf2-float'), new_child_2.get_data_type())
 
     def test_mul(self):
         fork_1_string = ForkNode(name="base", children=[TestNode.get_single_string_leaf()])
