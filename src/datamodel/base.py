@@ -112,7 +112,7 @@ class TreeRow(object):
         elif isinstance(value, float) or self._is_float(value):
             return ChildNode(name=name, data_type=FloatDataType())
         else:
-            return ChildNode(name=name, data_type=StringDataType(longest_string=len(str(value))))
+            return ChildNode(name=name, data_type=StringDataType())
 
     def _infer_fork_type(self, input_dict, key, level):
         """

@@ -66,6 +66,18 @@ class TreeDataType(DataType):
         else:
             return self.base_fork == other.base_fork
 
+    def __le__(self, other):
+        raise AttributeError("Comparisons for trees are not allowed! (yet)")
+
+    def __ge__(self, other):
+        raise AttributeError("Comparisons for trees are not allowed! (yet)")
+
+    def __gt__(self, other):
+        raise AttributeError("Comparisons for trees are not allowed! (yet)")
+
+    def __lt__(self, other):
+        raise AttributeError("Comparisons for trees are not allowed! (yet)")
+
 
 class Node(object):
     """
