@@ -91,40 +91,34 @@ class DataGenerator(object):
                     "level3-float": FloatDataType(),
                     "level3-array_tree": ArrayDataType(
                         TreeDataType(
-                            schema=TreeSchema(
-                                base_fork_node=ForkNode(
-                                    name="level3-array_tree",
-                                    children=[
-                                        ChildNode(name="level3-array-float", data_type=FloatDataType()),
-                                        ChildNode(name="level3-array-string", data_type=StringDataType())
-                                    ]
-                                )
+                            base_fork=ForkNode(
+                                name="level3-array_tree",
+                                children=[
+                                    ChildNode(name="level3-array-float", data_type=FloatDataType()),
+                                    ChildNode(name="level3-array-string", data_type=StringDataType())
+                                ]
                             )
                         )
                     ),
                     "level3-list_tree": ListDataType(
                         [
                             TreeDataType(
-                                schema=TreeSchema(
-                                    base_fork_node=ForkNode(
-                                        name="level3-list_tree_{}".format(x),
-                                        children=[
-                                            ChildNode(name="level3-list-float", data_type=FloatDataType()),
-                                            ChildNode(name="level3-list-string", data_type=StringDataType())
-                                        ]
-                                    )
+                                base_fork=ForkNode(
+                                    name="level3-list_tree_{}".format(x),
+                                    children=[
+                                        ChildNode(name="level3-list-float", data_type=FloatDataType()),
+                                        ChildNode(name="level3-list-string", data_type=StringDataType())
+                                    ]
                                 )
                             )
                             for x in range(0, 5)] + [
                             TreeDataType(
-                                schema=TreeSchema(
-                                    base_fork_node=ForkNode(
-                                        name="level3-list_tree_{}".format(x),
-                                        children=[
-                                            ChildNode(name="level3-list-date", data_type=StringDataType()),
-                                            ChildNode(name="level3-list-string", data_type=StringDataType())
-                                        ]
-                                    )
+                                base_fork=ForkNode(
+                                    name="level3-list_tree_{}".format(x),
+                                    children=[
+                                        ChildNode(name="level3-list-date", data_type=StringDataType()),
+                                        ChildNode(name="level3-list-string", data_type=StringDataType())
+                                    ]
                                 )
                             )
                             for x in range(5, 10)]
@@ -323,8 +317,8 @@ class TestTreeRow(TestCase):
                 ChildNode(name="c", data_type=StringDataType(longest_string=2)),
                 ChildNode(name="d", data_type=ListDataType(element_data_types=[
                     TreeDataType(
-                        schema=TreeSchema(base_fork_node=ForkNode(name="d_0", children=[
-                            ChildNode(name="s", data_type=FloatDataType())], level=4))),
+                        base_fork=ForkNode(name="d_0", children=[ChildNode(name="s", data_type=FloatDataType())],
+                                           level=4)),
                     FloatDataType()
                 ], level=3)),
                 ChildNode(name="e", data_type=ArrayDataType(element_data_type=StringDataType(longest_string=1)))

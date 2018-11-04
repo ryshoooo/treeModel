@@ -18,15 +18,15 @@ class TreeDataType(DataType):
     :param nullable: Boolean specifying whether the data type can contain missing values.
     """
 
-    def __init__(self, schema, nullable=True):
+    def __init__(self, base_fork, nullable=True):
         """
         Initialize the data type.
         """
 
-        if not isinstance(schema, TreeSchema):
-            raise AttributeError("Input schema has to be an instance of TreeSchema!")
+        if not isinstance(base_fork, ForkNode):
+            raise AttributeError("Input base fork has to be an instance of ForkNode!")
 
-        self.schema = copy(schema)
+        self.base_fork = base_fork
 
         if nullable:
             super(TreeDataType, self).__init__(dict, dict, {}, {})
@@ -41,7 +41,7 @@ class TreeDataType(DataType):
         """
         if not isinstance(value, dict):
             raise AttributeError("Cannot build non-dictionary-like input in TreeDataType!")
-        return self.schema.base_fork_node.build_value(self.get_numpy_type().type(value), 'numpy')
+        return self.base_fork.build_value(self.get_numpy_type().type(value), 'numpy')
 
     def build_python_value(self, value):
         """
@@ -52,10 +52,10 @@ class TreeDataType(DataType):
         if not isinstance(value, dict):
             raise AttributeError("Cannot build non-dictionary-like input in TreeDataType!")
 
-        return self.schema.base_fork_node.build_value(self.get_python_type()(value), 'python')
+        return self.base_fork.build_value(self.get_python_type()(value), 'python')
 
     def __str__(self):
-        return """TreeDataType({})""".format(str(self.schema))
+        return """TreeDataType({})""".format(str(self.base_fork))
 
     def __eq__(self, other):
         if not isinstance(other, DataType):
@@ -64,7 +64,7 @@ class TreeDataType(DataType):
             warn("TreeDataType is not a {}".format(type(other)), UserWarning)
             return False
         else:
-            return self.schema == other.schema
+            return self.base_fork == other.base_fork
 
 
 class Node(object):
@@ -157,9 +157,12 @@ class ForkNode(Node):
         """
         super(ForkNode, self).__init__()
         self.level = level
-        self.overwrite_children(name=name, children=children)
 
-    def overwrite_children(self, name, children):
+        self.set_name(name=name)
+        self.set_children(children=children)
+        self.data_type = TreeDataType(base_fork=self)
+
+    def set_children(self, children):
         """
         Force method which sets the name and the children leaves to the node.
         :param children: Array-like of Nodes.
@@ -175,14 +178,7 @@ class ForkNode(Node):
 
         self.children = deepcopy(children)
 
-        if not isinstance(name, str):
-            raise AttributeError("The name of the node has to be a string!")
-
-        self.name = name
-
-        self.data_type = TreeDataType(schema=TreeSchema(base_fork_node=self))
-
-        values, counts = np.unique(ar=self.get_children_names(), return_counts=True)
+        values, counts = np.unique(ar=[x.get_name() for x in children], return_counts=True)
 
         if len(counts) != 0 and np.max(counts) > 1:
             raise AttributeError(
@@ -340,26 +336,8 @@ class ChildNode(Node):
         """
         super(ChildNode, self).__init__()
 
-        self.overwrite_child(name=name, data_type=data_type)
-
-    def overwrite_child(self, name, data_type):
-        """
-        Force method which sets the name and the data type to the node.
-        :param name: String specifying the name of the node.
-        :param data_type: Instance of DataType specifying the type of data for the node.
-        :return: Instance of the object itself with name and data type set.
-        """
-        if not isinstance(name, str):
-            raise AttributeError("The name of the node has to be a string!")
-
-        self.name = name
-
-        if not isinstance(data_type, DataType):
-            raise AttributeError("Unsupported input data type: '{}'".format(data_type))
-
-        self.data_type = deepcopy(data_type)
-
-        return self
+        self.set_name(name=name)
+        self.set_data_type(data_type=data_type)
 
     def __str__(self):
         return """{}({})""".format(self.get_name(), str(self.get_data_type()))
