@@ -76,7 +76,7 @@ class DataType(object):
         if not isinstance(other, DataType):
             raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
         else:
-            return self.numpy_dtype == other.numpy_dtype and self.numpy_na_value == other.numpy_na_value and \
+            return self.numpy_dtype == other.numpy_dtype and str(self.numpy_na_value) == str(other.numpy_na_value) and \
                    self.python_dtype == other.python_dtype and self.python_na_value == other.python_na_value
 
     def __le__(self, other):
@@ -112,16 +112,14 @@ class StringDataType(DataType):
     :param longest_string: Integer specifying the longest possible string input.
     """
 
-    def __init__(self, nullable=True, longest_string=200):
+    def __init__(self, nullable=True):
         """
         Initialize the data type.
         """
-        self.longest_string = longest_string
-
         if nullable:
-            super(StringDataType, self).__init__('<U{}'.format(longest_string), str, 'nan', None)
+            super(StringDataType, self).__init__('<U128', str, 'nan', None)
         else:
-            super(StringDataType, self).__init__('<U{}'.format(longest_string), str, None, None)
+            super(StringDataType, self).__init__('<U128', str, None, None)
 
     def __str__(self):
         return "StringDataType"

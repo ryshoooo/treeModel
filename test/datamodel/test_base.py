@@ -314,14 +314,14 @@ class TestTreeRow(TestCase):
         expected_output = TreeSchema(base_fork_node=ForkNode(name="base", children=[
             ChildNode(name="a", data_type=FloatDataType()),
             ForkNode(name="b", children=[
-                ChildNode(name="c", data_type=StringDataType(longest_string=2)),
+                ChildNode(name="c", data_type=StringDataType()),
                 ChildNode(name="d", data_type=ListDataType(element_data_types=[
                     TreeDataType(
                         base_fork=ForkNode(name="d_0", children=[ChildNode(name="s", data_type=FloatDataType())],
                                            level=4)),
                     FloatDataType()
                 ], level=3)),
-                ChildNode(name="e", data_type=ArrayDataType(element_data_type=StringDataType(longest_string=1)))
+                ChildNode(name="e", data_type=ArrayDataType(element_data_type=StringDataType()))
             ], level=2)
         ], level=1))
 

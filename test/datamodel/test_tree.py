@@ -13,7 +13,7 @@ class TestNode(TestCase):
 
     @staticmethod
     def get_single_string_leaf():
-        return ChildNode(name="leaf-string", data_type=StringDataType(longest_string=10))
+        return ChildNode(name="leaf-string", data_type=StringDataType())
 
     @staticmethod
     def get_single_float_leaf():
