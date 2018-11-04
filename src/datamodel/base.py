@@ -12,14 +12,15 @@ from .tree import TreeSchema, ForkNode, ChildNode
 class TreeRow(object):
     """
     The superclass containing the base tree input row.
+
+    :param input_row: Dictionary with input data.
+    :param schema: Either None or TreeSchema object specifying the input_row types. In case the schema is None,
+    the schema will be automatically inferred from the input_row.
     """
 
     def __init__(self, input_row, schema=None):
         """
         Initialize the TreeRow object.
-        :param input_row: Dictionary with input data.
-        :param schema: Either None or TreeSchema object specifying the input_row types. In case the schema is None,
-        the schema will be automatically inferred from the input_row.
         """
         if schema is None:
             self.schema = self.infer_schema(input_row)
@@ -67,10 +68,7 @@ class TreeRow(object):
         :return: Dictionary with the typed data.
         """
         if not isinstance(input_row, dict):
-            try:
-                input_row = dict(input_row)
-            except Exception:
-                raise RuntimeError("Failed to interpret the input row as dictionary!")
+            input_row = dict(input_row)
 
         return self.schema.base_fork_node.build_value(input_row)
 
@@ -136,10 +134,7 @@ class TreeRow(object):
         :return: TreeSchema object specifying the schema of the row.
         """
         if not isinstance(input_dict, dict):
-            try:
-                input_dict = dict(input_dict)
-            except Exception:
-                raise RuntimeError("Failed to interpret the input row as dictionary!")
+            input_dict = dict(input_dict)
 
         return TreeSchema(base_fork_node=self._infer_fork_type(input_dict, initial_name, 1))
 
@@ -147,15 +142,16 @@ class TreeRow(object):
 class TreeDataSet(object):
     """
     Base class for dataset of trees.
+
+    :param input_rows: A collection of built TreeRows or python dictionaries.
+    :param schema: Either None or TreeSchema specifying the schema for every row or collection of TreeSchemas
+        specifying the TreeSchema for each input row in order. In case the schema is None, each row will infer the
+        schema automatically.
     """
 
     def __init__(self, input_rows, schema=None):
         """
         Initialize the dataset object.
-        :param input_rows: A collection of built TreeRows or python dictionaries.
-        :param schema: Either None or TreeSchema specifying the schema for every row or collection of TreeSchemas
-            specifying the TreeSchema for each input row in order. In case the schema is None, each row will infer the
-            schema automatically.
         """
         if not isinstance(input_rows, (collections.Sequence, np.ndarray)) or isinstance(input_rows, str):
             raise AttributeError("Incorrect format of input rows!")

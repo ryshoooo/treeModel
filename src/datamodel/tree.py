@@ -13,13 +13,14 @@ from warnings import warn
 class TreeDataType(DataType):
     """
     DataType for trees (python dictionaries).
+
+    :param schema: TreeSchema specifying the input tree.
+    :param nullable: Boolean specifying whether the data type can contain missing values.
     """
 
     def __init__(self, schema, nullable=True):
         """
         Initialize the data type.
-        :param schema: TreeSchema specifying the input tree.
-        :param nullable: Boolean specifying whether the data type can contain missing values.
         """
 
         if not isinstance(schema, TreeSchema):
@@ -145,13 +146,14 @@ class Node(object):
 class ForkNode(Node):
     """
     Fork node.
+
+    :param name: Name for the fork.
+    :param children: List of Node objects.
     """
 
     def __init__(self, name, children, level=1):
         """
         Initialize the ForkNode object.
-        :param name: Name for the fork.
-        :param children: List of Node objects.
         """
         super(ForkNode, self).__init__()
         self.level = level
@@ -327,13 +329,14 @@ class ForkNode(Node):
 class ChildNode(Node):
     """
     Leaf.
+
+    :param name: Name for the child node.
+    :param data_type: DataType object specifying the data type for the child.
     """
 
     def __init__(self, name, data_type):
         """
         Initialize the ChildNode object.
-        :param name: Name for the child node.
-        :param data_type: DataType object specifying the data type for the child.
         """
         super(ChildNode, self).__init__()
 
@@ -383,12 +386,13 @@ class TreeSchema(object):
     Base class for input schema for a particular dataset.
     NB: Not a big difference between ForkNode and TreeSchema, it is important to distinguish between them though,
     since ForkNode's functionality is more tree-like, while the schema only gives more metadata about the object.
+
+    :param base_fork_node: ForkNode containing the full tree
     """
 
     def __init__(self, base_fork_node):
         """
         Initialize the TreeSchema object (basically works as a ForkNode)
-        :param base_fork_node: ForkNode containing the full tree
         """
         if not isinstance(base_fork_node, ForkNode):
             raise AttributeError("Incorrect format of input base node!")
