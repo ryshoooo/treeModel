@@ -137,25 +137,25 @@ class StringDataType(DataType):
 
     def __le__(self, other):
         if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+            raise AttributeError("Cannot compare StringDataType to '{}'".format(type(other)))
 
         return self == other
 
     def __lt__(self, other):
         if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+            raise AttributeError("Cannot compare StringDataType to '{}'".format(type(other)))
 
         return False
 
     def __ge__(self, other):
         if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+            raise AttributeError("Cannot compare StringDataType to '{}'".format(type(other)))
 
         return True
 
     def __gt__(self, other):
         if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+            raise AttributeError("Cannot compare StringDataType to '{}'".format(type(other)))
 
         return not self == other
 
@@ -180,25 +180,25 @@ class FloatDataType(DataType):
 
     def __le__(self, other):
         if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+            raise AttributeError("Cannot compare FloatDataType to '{}'".format(type(other)))
 
         return isinstance(other, (StringDataType, FloatDataType))
 
     def __lt__(self, other):
         if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+            raise AttributeError("Cannot compare FloatDataType to '{}'".format(type(other)))
 
         return isinstance(other, StringDataType)
 
     def __ge__(self, other):
         if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+            raise AttributeError("Cannot compare FloatDataType to '{}'".format(type(other)))
 
         return self == other
 
     def __gt__(self, other):
         if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+            raise AttributeError("Cannot compare FloatDataType to '{}'".format(type(other)))
 
         return False
 
@@ -262,7 +262,7 @@ class DateDataType(DataType):
 
     def __le__(self, other):
         if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+            raise AttributeError("Cannot compare DateDataType to '{}'".format(type(other)))
 
         if isinstance(other, StringDataType):
             return True
@@ -271,7 +271,7 @@ class DateDataType(DataType):
 
     def __lt__(self, other):
         if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+            raise AttributeError("Cannot compare DateDataType to '{}'".format(type(other)))
 
         if isinstance(other, StringDataType):
             return True
@@ -280,7 +280,7 @@ class DateDataType(DataType):
 
     def __ge__(self, other):
         if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+            raise AttributeError("Cannot compare DateDataType to '{}'".format(type(other)))
 
         if isinstance(other, DateDataType):
             return self.get_numpy_type() >= other.get_numpy_type()
@@ -289,7 +289,7 @@ class DateDataType(DataType):
 
     def __gt__(self, other):
         if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+            raise AttributeError("Cannot compare DateDataType to '{}'".format(type(other)))
 
         if isinstance(other, DateDataType):
             return self.get_numpy_type() > other.get_numpy_type()
@@ -359,7 +359,7 @@ class ArrayDataType(DataType):
 
     def __le__(self, other):
         if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+            raise AttributeError("Cannot compare ArrayDataType to '{}'".format(type(other)))
 
         if isinstance(other, (StringDataType, ListDataType)):
             return True
@@ -370,7 +370,7 @@ class ArrayDataType(DataType):
 
     def __lt__(self, other):
         if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+            raise AttributeError("Cannot compare ArrayDataType to '{}'".format(type(other)))
 
         if isinstance(other, (StringDataType, ListDataType)):
             return True
@@ -381,7 +381,7 @@ class ArrayDataType(DataType):
 
     def __ge__(self, other):
         if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+            raise AttributeError("Cannot compare ArrayDataType to '{}'".format(type(other)))
 
         if isinstance(other, ArrayDataType):
             return self.element_data_type >= other.element_data_type
@@ -390,10 +390,10 @@ class ArrayDataType(DataType):
 
     def __gt__(self, other):
         if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+            raise AttributeError("Cannot compare ArrayDataType to '{}'".format(type(other)))
 
-        if isinstance(other, DateDataType):
-            return self.get_numpy_type() > other.get_numpy_type()
+        if isinstance(other, ArrayDataType):
+            return self.element_data_type > other.element_data_type
         else:
             return False
 
@@ -480,7 +480,7 @@ class ListDataType(DataType):
 
     def __le__(self, other):
         if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+            raise AttributeError("Cannot compare ListDataType to '{}'".format(type(other)))
 
         if isinstance(other, StringDataType):
             return True
@@ -492,7 +492,7 @@ class ListDataType(DataType):
 
     def __lt__(self, other):
         if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+            raise AttributeError("Cannot compare ListDataType to '{}'".format(type(other)))
 
         if isinstance(other, StringDataType):
             return True
@@ -504,7 +504,7 @@ class ListDataType(DataType):
 
     def __ge__(self, other):
         if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+            raise AttributeError("Cannot compare ListDataType to '{}'".format(type(other)))
 
         if isinstance(other, ArrayDataType):
             return True
@@ -516,7 +516,7 @@ class ListDataType(DataType):
 
     def __gt__(self, other):
         if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+            raise AttributeError("Cannot compare ListDataType to '{}'".format(type(other)))
 
         if isinstance(other, ArrayDataType):
             return True
