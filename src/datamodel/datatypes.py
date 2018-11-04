@@ -13,15 +13,16 @@ class DataType(object):
     """
     Conversion between numpy and python types for the Tree input data type.
     The upper data type for tree data.
+
+    :param numpy_dtype: Specification of the numpy type
+    :param python_dtype: Specification of the python type
+    :param numpy_na_value: Specification of the numpy missing value
+    :param python_na_value: Specification of the python missing value
     """
 
     def __init__(self, numpy_dtype, python_dtype, numpy_na_value, python_na_value):
         """
         Initialize the data type object.
-        :param numpy_dtype: Specification of the numpy type
-        :param python_dtype: Specification of the python type
-        :param numpy_na_value: Specification of the numpy missing value
-        :param python_na_value: Specification of the python missing value
         """
         self.numpy_dtype = numpy_dtype
         self.python_dtype = python_dtype
@@ -106,13 +107,14 @@ class DataType(object):
 class StringDataType(DataType):
     """
     DataType for string/categorical inputs.
+
+    :param nullable: Boolean specifying whether the data type can contain missing values.
+    :param longest_string: Integer specifying the longest possible string input.
     """
 
     def __init__(self, nullable=True, longest_string=200):
         """
         Initialize the data type.
-        :param nullable: Boolean specifying whether the data type can contain missing values.
-        :param longest_string: Integer specifying the longest possible string input.
         """
         self.longest_string = longest_string
 
@@ -161,13 +163,14 @@ class StringDataType(DataType):
 class FloatDataType(DataType):
     """
     DataType for float/continuous/discrete inputs.
+
+    :param nullable: Boolean specifying whether the data type can contain missing values.
+    :param bits: Integer specifying the number of bits to allocate in the memory for the float.
     """
 
     def __init__(self, nullable=True, bits=8):
         """
         Initialize the data type.
-        :param nullable: Boolean specifying whether the data type can contain missing values.
-        :param bits: Integer specifying the number of bits to allocate in the memory for the float.
         """
         self.bits = bits
         if nullable:
@@ -215,14 +218,15 @@ class FloatDataType(DataType):
 class DateDataType(DataType):
     """
     DataType for date/timestamp inputs.
+
+    :param nullable: Boolean specifying whether the data type can contain missing values.
+    :param resolution: String specifying the wanted numpy resolution of the date type.
+    :param format_string: String Timestamp format.
     """
 
     def __init__(self, nullable=True, resolution='s', format_string="%Y-%m-%d %H:%M:%S.%f"):
         """
         Initialize Date DataType.
-        :param nullable: Boolean specifying whether the data type can contain missing values.
-        :param resolution: String specifying the wanted numpy resolution of the date type.
-        :param format_string: String Timestamp format.
         """
         self.resolution = resolution
         self.format_string = format_string
@@ -308,13 +312,14 @@ class DateDataType(DataType):
 class ArrayDataType(DataType):
     """
     DataType for arrays (lists of single type).
+
+    :param element_data_type: DataType specifying the data type of the array elements.
+    :param nullable: Boolean specifying whether the data type can contain missing values.
     """
 
     def __init__(self, element_data_type, nullable=True):
         """
         Initialize the data type.
-        :param element_data_type: DataType specifying the data type of the array elements.
-        :param nullable: Boolean specifying whether the data type can contain missing values.
         """
         if not isinstance(element_data_type, DataType):
             raise AttributeError("The array element has to be of DataType instance!")
@@ -408,13 +413,14 @@ class ArrayDataType(DataType):
 class ListDataType(DataType):
     """
     DataType for lists (list with elements of different data types)
+
+    :param element_data_types: List/Sequence of DataTypes
+    :param nullable: Boolean specifying whether the data type can contain missing values.
     """
 
     def __init__(self, element_data_types, nullable=True, level=1):
         """
         Initialize the data type.
-        :param element_data_types: List/Sequence of DataTypes
-        :param nullable: Boolean specifying whether the data type can contain missing values.
         """
         if not isinstance(element_data_types, (collections.Sequence, np.ndarray)) or isinstance(element_data_types,
                                                                                                 str):
