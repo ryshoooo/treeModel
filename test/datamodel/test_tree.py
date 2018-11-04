@@ -96,7 +96,8 @@ class TestChildNode(TestCase):
         self.assertEqual(single_leaf.name, 'leaf-float')
         self.assertTrue(isinstance(single_leaf.data_type, FloatDataType))
 
-        single_leaf = single_leaf.overwrite_child(name='new-leaf', data_type=DateDataType(resolution='M'))
+        single_leaf = single_leaf.set_name(name='new-leaf')
+        single_leaf = single_leaf.set_data_type(data_type=DateDataType(resolution='M'))
 
         self.assertTrue(single_leaf.is_child())
         self.assertTrue(single_leaf.children is None)
@@ -129,18 +130,18 @@ class TestForkNode(TestCase):
             self.assertTrue('leaf' in child.name)
 
         new_children = [ChildNode(name="new", data_type=DateDataType(resolution='M'))]
-        single_fork = single_fork.overwrite_children(children=new_children, name='new-fork')
+        single_fork = single_fork.set_children(children=new_children)
 
         self.assertTrue(single_fork.is_fork())
         self.assertEqual(len(single_fork.children), 1)
-        self.assertEqual(single_fork.name, 'new-fork')
+        self.assertEqual(single_fork.name, 'test-fork')
         for child in single_fork.children:
             self.assertTrue('new' in child.name)
 
         new_children_fail = new_children + [ChildNode(name='new', data_type=FloatDataType())]
 
         try:
-            single_fork.overwrite_children(children=new_children_fail, name='new-fork')
+            single_fork.set_children(children=new_children_fail)
         except AttributeError as e:
             self.assertEqual("Children nodes with the same name are not allowed! 'new'", str(e))
 
@@ -416,33 +417,33 @@ class TestTreeDataType(TestCase):
         )
 
     def test_is_nullable(self):
-        dtp = TreeDataType(schema=self.get_schema_v1(), nullable=False)
+        dtp = TreeDataType(base_fork=self.get_schema_v1().base_fork_node, nullable=False)
         self.assertFalse(dtp.is_nullable())
-        dtp = TreeDataType(schema=self.get_schema_v1(), nullable=True)
+        dtp = TreeDataType(base_fork=self.get_schema_v1().base_fork_node, nullable=True)
         self.assertTrue(dtp.is_nullable())
 
     def test_get_numpy_type(self):
-        dtp = TreeDataType(schema=self.get_schema_v1())
+        dtp = TreeDataType(base_fork=self.get_schema_v1().base_fork_node)
         self.assertEqual(dtp.get_numpy_type(), dict)
-        dtp = TreeDataType(schema=self.get_schema_v2())
+        dtp = TreeDataType(base_fork=self.get_schema_v2().base_fork_node)
         self.assertEqual(dtp.get_numpy_type(), dict)
-        dtp = TreeDataType(schema=self.get_schema_v3())
+        dtp = TreeDataType(base_fork=self.get_schema_v3().base_fork_node)
         self.assertEqual(dtp.get_numpy_type(), dict)
 
     def test_get_python_type(self):
-        dtp = TreeDataType(schema=self.get_schema_v1())
+        dtp = TreeDataType(base_fork=self.get_schema_v1().base_fork_node)
         self.assertEqual(dtp.get_python_type(), dict)
-        dtp = TreeDataType(schema=self.get_schema_v2())
+        dtp = TreeDataType(base_fork=self.get_schema_v2().base_fork_node)
         self.assertEqual(dtp.get_python_type(), dict)
-        dtp = TreeDataType(schema=self.get_schema_v3())
+        dtp = TreeDataType(base_fork=self.get_schema_v3().base_fork_node)
         self.assertEqual(dtp.get_python_type(), dict)
 
     def test_build_numpy_value(self):
         # Case number 1
-        dtp = TreeDataType(schema=self.get_schema_v1())
+        dtp = TreeDataType(base_fork=self.get_schema_v1().base_fork_node)
 
         built_empty = dtp.build_numpy_value({})
-        for name in dtp.schema.base_fork_node.get_children_names():
+        for name in dtp.base_fork.get_children_names():
             self.assertTrue(name in built_empty.keys())
 
         self.assertEqual(built_empty['leaf-string'], 'nan')
@@ -451,7 +452,7 @@ class TestTreeDataType(TestCase):
 
         built_non_empty = dtp.build_numpy_value({
             'leaf-string': 'tralala', 'leaf-float': 29.23, 'leaf-date': '1993-04-01'})
-        for name in dtp.schema.base_fork_node.get_children_names():
+        for name in dtp.base_fork.get_children_names():
             self.assertTrue(name in built_non_empty.keys())
 
         self.assertEqual(built_non_empty['leaf-string'], 'tralala')
@@ -464,10 +465,10 @@ class TestTreeDataType(TestCase):
             self.assertEqual(str(e), "Unknown node of name 'non-existent' not specified in the Node 'test-fork'")
 
         # Case number 2
-        dtp = TreeDataType(schema=self.get_schema_v2())
+        dtp = TreeDataType(base_fork=self.get_schema_v2().base_fork_node)
 
         built_empty = dtp.build_numpy_value({})
-        for name in dtp.schema.base_fork_node.get_children_names():
+        for name in dtp.base_fork.get_children_names():
             self.assertTrue(name in built_empty.keys())
 
         self.assertEqual(built_empty['leaf-string'], 'nan')
@@ -477,7 +478,7 @@ class TestTreeDataType(TestCase):
 
         built_non_empty = dtp.build_numpy_value({
             'leaf-string': 'tralala', 'leaf-float': 29.23, 'leaf-date': '1993-04-01'})
-        for name in dtp.schema.base_fork_node.get_children_names():
+        for name in dtp.base_fork.get_children_names():
             self.assertTrue(name in built_non_empty.keys())
 
         self.assertEqual(built_non_empty['leaf-string'], 'tralala')
@@ -491,10 +492,10 @@ class TestTreeDataType(TestCase):
             self.assertEqual(str(e), "Unknown node of name 'non-existent' not specified in the Node 'base'")
 
         # Case number 3
-        dtp = TreeDataType(schema=self.get_schema_v3())
+        dtp = TreeDataType(base_fork=self.get_schema_v3().base_fork_node)
 
         built_empty = dtp.build_numpy_value({})
-        for name in dtp.schema.base_fork_node.get_children_names():
+        for name in dtp.base_fork.get_children_names():
             self.assertTrue(name in built_empty.keys())
 
         self.assertEqual(built_empty['leaf-string'], 'nan')
@@ -507,7 +508,7 @@ class TestTreeDataType(TestCase):
         built_non_empty = dtp.build_numpy_value({
             'leaf-string': 'tralala', 'leaf-float': 29.23, 'leaf-date': '1993-04-01',
             'level2': {'leaf2-float': -10.99}})
-        for name in dtp.schema.base_fork_node.get_children_names():
+        for name in dtp.base_fork.get_children_names():
             self.assertTrue(name in built_non_empty.keys())
 
         self.assertEqual(built_non_empty['leaf-string'], 'tralala')
@@ -524,10 +525,10 @@ class TestTreeDataType(TestCase):
 
     def test_build_python_value(self):
         # Case number 1
-        dtp = TreeDataType(schema=self.get_schema_v1())
+        dtp = TreeDataType(base_fork=self.get_schema_v1().base_fork_node)
 
         built_empty = dtp.build_python_value({})
-        for name in dtp.schema.base_fork_node.get_children_names():
+        for name in dtp.base_fork.get_children_names():
             self.assertTrue(name in built_empty.keys())
 
         self.assertEqual(built_empty['leaf-string'], "None")
@@ -536,7 +537,7 @@ class TestTreeDataType(TestCase):
 
         built_non_empty = dtp.build_python_value({
             'leaf-string': 'tralala', 'leaf-float': 29.23, 'leaf-date': '1993-04-01'})
-        for name in dtp.schema.base_fork_node.get_children_names():
+        for name in dtp.base_fork.get_children_names():
             self.assertTrue(name in built_non_empty.keys())
 
         self.assertEqual(built_non_empty['leaf-string'], 'tralala')
@@ -549,10 +550,10 @@ class TestTreeDataType(TestCase):
             self.assertEqual(str(e), "Unknown node of name 'non-existent' not specified in the Node 'test-fork'")
 
         # Case number 2
-        dtp = TreeDataType(schema=self.get_schema_v2())
+        dtp = TreeDataType(base_fork=self.get_schema_v2().base_fork_node)
 
         built_empty = dtp.build_python_value({})
-        for name in dtp.schema.base_fork_node.get_children_names():
+        for name in dtp.base_fork.get_children_names():
             self.assertTrue(name in built_empty.keys())
 
         self.assertEqual(built_empty['leaf-string'], "None")
@@ -562,7 +563,7 @@ class TestTreeDataType(TestCase):
 
         built_non_empty = dtp.build_python_value({
             'leaf-string': 'tralala', 'leaf-float': 29.23, 'leaf-date': '1993-04-01'})
-        for name in dtp.schema.base_fork_node.get_children_names():
+        for name in dtp.base_fork.get_children_names():
             self.assertTrue(name in built_non_empty.keys())
 
         self.assertEqual(built_non_empty['leaf-string'], 'tralala')
@@ -576,10 +577,10 @@ class TestTreeDataType(TestCase):
             self.assertEqual(str(e), "Unknown node of name 'non-existent' not specified in the Node 'base'")
 
         # Case number 3
-        dtp = TreeDataType(schema=self.get_schema_v3())
+        dtp = TreeDataType(base_fork=self.get_schema_v3().base_fork_node)
 
         built_empty = dtp.build_python_value({})
-        for name in dtp.schema.base_fork_node.get_children_names():
+        for name in dtp.base_fork.get_children_names():
             self.assertTrue(name in built_empty.keys())
 
         self.assertEqual(built_empty['leaf-string'], "None")
@@ -592,7 +593,7 @@ class TestTreeDataType(TestCase):
         built_non_empty = dtp.build_python_value({
             'leaf-string': 'tralala', 'leaf-float': 29.23, 'leaf-date': '1993-04-01',
             'level2': {'leaf2-float': -10.99}})
-        for name in dtp.schema.base_fork_node.get_children_names():
+        for name in dtp.base_fork.get_children_names():
             self.assertTrue(name in built_non_empty.keys())
 
         self.assertEqual(built_non_empty['leaf-string'], 'tralala')
@@ -608,12 +609,12 @@ class TestTreeDataType(TestCase):
             self.assertEqual(str(e), "Unknown node of name 'non-existent' not specified in the Node 'level2'")
 
     def test_eq(self):
-        dtp1 = TreeDataType(schema=self.get_schema_v1())
-        dtp2 = TreeDataType(schema=self.get_schema_v1())
+        dtp1 = TreeDataType(base_fork=self.get_schema_v1().base_fork_node)
+        dtp2 = TreeDataType(base_fork=self.get_schema_v1().base_fork_node)
         self.assertEqual(dtp1, dtp2)
-        dtp1 = TreeDataType(schema=self.get_schema_v2())
-        dtp2 = TreeDataType(schema=self.get_schema_v2())
+        dtp1 = TreeDataType(base_fork=self.get_schema_v2().base_fork_node)
+        dtp2 = TreeDataType(base_fork=self.get_schema_v2().base_fork_node)
         self.assertEqual(dtp1, dtp2)
-        dtp1 = TreeDataType(schema=self.get_schema_v3())
-        dtp2 = TreeDataType(schema=self.get_schema_v3())
+        dtp1 = TreeDataType(base_fork=self.get_schema_v3().base_fork_node)
+        dtp2 = TreeDataType(base_fork=self.get_schema_v3().base_fork_node)
         self.assertEqual(dtp1, dtp2)
