@@ -258,41 +258,32 @@ class DateDataType(DataType):
         """
         return self.get_numpy_type().type(self.build_python_value(value)).astype(self.get_numpy_type())
 
-    def __le__(self, other):
+    def _compare(self, other, method):
+        """
+        Generic method to compare DateDataType to a DataType.
+        :param other: DataType
+        :param method: String
+        :return: Boolean
+        """
         if not isinstance(other, DataType):
             raise AttributeError("Cannot compare DateDataType to '{}'".format(type(other)))
 
         if isinstance(other, StringDataType):
-            return True
+            return method in ('__lt__', '__le__')
         elif isinstance(other, DateDataType):
-            return self.get_numpy_type() <= other.get_numpy_type()
+            return self.get_numpy_type().__getattribute__(method)(other.get_numpy_type())
+
+    def __le__(self, other):
+        return self._compare(other, self.__le__.__name__)
 
     def __lt__(self, other):
-        if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DateDataType to '{}'".format(type(other)))
-
-        if isinstance(other, StringDataType):
-            return True
-        elif isinstance(other, DateDataType):
-            return self.get_numpy_type() < other.get_numpy_type()
+        return self._compare(other, self.__lt__.__name__)
 
     def __ge__(self, other):
-        if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DateDataType to '{}'".format(type(other)))
-
-        if isinstance(other, DateDataType):
-            return self.get_numpy_type() >= other.get_numpy_type()
-        else:
-            return False
+        return self._compare(other, self.__ge__.__name__)
 
     def __gt__(self, other):
-        if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DateDataType to '{}'".format(type(other)))
-
-        if isinstance(other, DateDataType):
-            return self.get_numpy_type() > other.get_numpy_type()
-        else:
-            return False
+        return self._compare(other, self.__gt__.__name__)
 
     def __str__(self):
         return "DateDataType({}, {})".format(self.resolution, self.format_string)
@@ -355,45 +346,34 @@ class ArrayDataType(DataType):
         built_value = [self.element_data_type.build_python_value(x) for x in value]
         return self.get_python_type()(built_value)
 
-    def __le__(self, other):
+    def _compare(self, other, method):
+        """
+        Generic method to compare Array Data Type to other Data Type.
+        :param other: DataType
+        :param method: String
+        :return: Boolean
+        """
         if not isinstance(other, DataType):
             raise AttributeError("Cannot compare ArrayDataType to '{}'".format(type(other)))
 
         if isinstance(other, (StringDataType, ListDataType)):
-            return True
+            return method in ('__le__', '__lt__')
         elif isinstance(other, ArrayDataType):
-            return self.element_data_type <= other.element_data_type
+            return self.element_data_type.__getattribute__(method)(other.element_data_type)
         else:
             return False
+
+    def __le__(self, other):
+        return self._compare(other, self.__le__.__name__)
 
     def __lt__(self, other):
-        if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare ArrayDataType to '{}'".format(type(other)))
-
-        if isinstance(other, (StringDataType, ListDataType)):
-            return True
-        elif isinstance(other, ArrayDataType):
-            return self.element_data_type < other.element_data_type
-        else:
-            return False
+        return self._compare(other, self.__lt__.__name__)
 
     def __ge__(self, other):
-        if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare ArrayDataType to '{}'".format(type(other)))
-
-        if isinstance(other, ArrayDataType):
-            return self.element_data_type >= other.element_data_type
-        else:
-            return False
+        return self._compare(other, self.__ge__.__name__)
 
     def __gt__(self, other):
-        if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare ArrayDataType to '{}'".format(type(other)))
-
-        if isinstance(other, ArrayDataType):
-            return self.element_data_type > other.element_data_type
-        else:
-            return False
+        return self._compare(other, self.__gt__.__name__)
 
     def __str__(self):
         return """ArrayDataType({})""".format(self.element_data_type)
@@ -476,53 +456,37 @@ class ListDataType(DataType):
 
         return self.get_python_type()(input_values)
 
-    def __le__(self, other):
+    def _compare(self, other, method):
+        """
+        Generic method to compare ListDataType to other DataType.
+        :param other: DataType
+        :param method: String
+        :return: Boolean
+        """
         if not isinstance(other, DataType):
             raise AttributeError("Cannot compare ListDataType to '{}'".format(type(other)))
 
         if isinstance(other, StringDataType):
-            return True
+            return method in ('__le__', '__lt__')
+        elif isinstance(other, ArrayDataType):
+            return method in ('__ge__', '__gt__')
         elif isinstance(other, ListDataType):
-            return all(
-                [data_type <= other.element_data_types[ind] for ind, data_type in enumerate(self.element_data_types)])
+            return all([data_type.__getattribute__(method)(other.element_data_types[ind])
+                        for ind, data_type in enumerate(self.element_data_types)])
         else:
             return False
+
+    def __le__(self, other):
+        return self._compare(other, self.__le__.__name__)
 
     def __lt__(self, other):
-        if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare ListDataType to '{}'".format(type(other)))
-
-        if isinstance(other, StringDataType):
-            return True
-        elif isinstance(other, ListDataType):
-            return all(
-                [data_type < other.element_data_types[ind] for ind, data_type in enumerate(self.element_data_types)])
-        else:
-            return False
+        return self._compare(other, self.__lt__.__name__)
 
     def __ge__(self, other):
-        if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare ListDataType to '{}'".format(type(other)))
-
-        if isinstance(other, ArrayDataType):
-            return True
-        elif isinstance(other, ListDataType):
-            return all(
-                [data_type >= other.element_data_types[ind] for ind, data_type in enumerate(self.element_data_types)])
-        else:
-            return False
+        return self._compare(other, self.__ge__.__name__)
 
     def __gt__(self, other):
-        if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare ListDataType to '{}'".format(type(other)))
-
-        if isinstance(other, ArrayDataType):
-            return True
-        elif isinstance(other, ListDataType):
-            return all(
-                [data_type > other.element_data_types[ind] for ind, data_type in enumerate(self.element_data_types)])
-        else:
-            return False
+        return self._compare(other, self.__gt__.__name__)
 
     def __str__(self):
         """
@@ -530,7 +494,7 @@ class ListDataType(DataType):
         :return: String
         """
         elements_str = ("\n" + "\t" * self.level).join([str(x) for x in self.element_data_types])
-        
+
         return str("ListDataType(\n" + "\t" * self.level + "{}\n" + "\t" * (self.level - 1) + " " * len(
             "ListDataType") + ")").format(elements_str)
 
