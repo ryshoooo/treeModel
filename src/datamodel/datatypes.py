@@ -69,6 +69,23 @@ class DataType(object):
         except TypeError:
             return self.python_na_value
 
+    def _compare(self, other, method):
+        """
+        Generic method to compare data type to other data type.
+        :param other: DataType
+        :param method: String
+        :return: Boolean
+        """
+        if not isinstance(other, DataType):
+            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
+
+        if isinstance(other, StringDataType) and method in ('__le__', '__lt__'):
+            return True
+        elif method in ('__le__', '__ge__'):
+            return self == other
+        else:
+            return False
+
     def __str__(self):
         return "DataType"
 
@@ -80,31 +97,16 @@ class DataType(object):
                    self.python_dtype == other.python_dtype and self.python_na_value == other.python_na_value
 
     def __le__(self, other):
-        if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
-
-        if isinstance(other, StringDataType):
-            return True
-        else:
-            return self == other
+        return self._compare(other, self.__le__.__name__)
 
     def __lt__(self, other):
-        if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
-
-        return isinstance(other, StringDataType)
+        return self._compare(other, self.__lt__.__name__)
 
     def __ge__(self, other):
-        if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
-
-        return self == other
+        return self._compare(other, self.__ge__.__name__)
 
     def __gt__(self, other):
-        if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
-
-        return False
+        return self._compare(other, self.__gt__.__name__)
 
 
 class StringDataType(DataType):
@@ -112,7 +114,6 @@ class StringDataType(DataType):
     DataType for string/categorical inputs.
 
     :param nullable: Boolean specifying whether the data type can contain missing values.
-    :param longest_string: Integer specifying the longest possible string input.
     """
 
     def __init__(self, nullable=True):
@@ -123,6 +124,19 @@ class StringDataType(DataType):
             super(StringDataType, self).__init__('<U128', str, 'nan', None)
         else:
             super(StringDataType, self).__init__('<U128', str, None, None)
+
+    def _compare(self, other, method):
+        if not isinstance(other, DataType):
+            raise AttributeError("Cannot compare StringDataType to '{}'".format(type(other)))
+
+        if method == '__ge__':
+            return True
+        elif method == '__lt__':
+            return False
+        elif method == '__gt__':
+            return not self == other
+        else:
+            return self == other
 
     def __str__(self):
         return "StringDataType"
@@ -135,30 +149,6 @@ class StringDataType(DataType):
             return False
         else:
             return True
-
-    def __le__(self, other):
-        if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare StringDataType to '{}'".format(type(other)))
-
-        return self == other
-
-    def __lt__(self, other):
-        if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare StringDataType to '{}'".format(type(other)))
-
-        return False
-
-    def __ge__(self, other):
-        if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare StringDataType to '{}'".format(type(other)))
-
-        return True
-
-    def __gt__(self, other):
-        if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare StringDataType to '{}'".format(type(other)))
-
-        return not self == other
 
 
 class FloatDataType(DataType):
@@ -179,29 +169,18 @@ class FloatDataType(DataType):
         else:
             super(FloatDataType, self).__init__('<f{}'.format(bits), float, None, None)
 
-    def __le__(self, other):
+    def _compare(self, other, method):
         if not isinstance(other, DataType):
             raise AttributeError("Cannot compare FloatDataType to '{}'".format(type(other)))
 
-        return isinstance(other, (StringDataType, FloatDataType))
-
-    def __lt__(self, other):
-        if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare FloatDataType to '{}'".format(type(other)))
-
-        return isinstance(other, StringDataType)
-
-    def __ge__(self, other):
-        if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare FloatDataType to '{}'".format(type(other)))
-
-        return self == other
-
-    def __gt__(self, other):
-        if not isinstance(other, DataType):
-            raise AttributeError("Cannot compare FloatDataType to '{}'".format(type(other)))
-
-        return False
+        if method == '__le__':
+            return isinstance(other, (StringDataType, FloatDataType))
+        elif method == '__lt__':
+            return isinstance(other, StringDataType)
+        elif method == '__ge__':
+            return self == other
+        else:
+            return False
 
     def __str__(self):
         return "FloatDataType"
@@ -275,18 +254,6 @@ class DateDataType(DataType):
             return method in ('__lt__', '__le__')
         elif isinstance(other, DateDataType):
             return self.get_numpy_type().__getattribute__(method)(other.get_numpy_type())
-
-    def __le__(self, other):
-        return self._compare(other, self.__le__.__name__)
-
-    def __lt__(self, other):
-        return self._compare(other, self.__lt__.__name__)
-
-    def __ge__(self, other):
-        return self._compare(other, self.__ge__.__name__)
-
-    def __gt__(self, other):
-        return self._compare(other, self.__gt__.__name__)
 
     def __str__(self):
         return "DateDataType({}, {})".format(self.resolution, self.format_string)
@@ -365,18 +332,6 @@ class ArrayDataType(DataType):
             return self.element_data_type.__getattribute__(method)(other.element_data_type)
         else:
             return False
-
-    def __le__(self, other):
-        return self._compare(other, self.__le__.__name__)
-
-    def __lt__(self, other):
-        return self._compare(other, self.__lt__.__name__)
-
-    def __ge__(self, other):
-        return self._compare(other, self.__ge__.__name__)
-
-    def __gt__(self, other):
-        return self._compare(other, self.__gt__.__name__)
 
     def __str__(self):
         return """ArrayDataType({})""".format(self.element_data_type)
@@ -460,12 +415,6 @@ class ListDataType(DataType):
         return self.get_python_type()(input_values)
 
     def _compare(self, other, method):
-        """
-        Generic method to compare ListDataType to other DataType.
-        :param other: DataType
-        :param method: String
-        :return: Boolean
-        """
         if not isinstance(other, DataType):
             raise AttributeError("Cannot compare ListDataType to '{}'".format(type(other)))
 
@@ -478,18 +427,6 @@ class ListDataType(DataType):
                         for ind, data_type in enumerate(self.element_data_types)])
         else:
             return False
-
-    def __le__(self, other):
-        return self._compare(other, self.__le__.__name__)
-
-    def __lt__(self, other):
-        return self._compare(other, self.__lt__.__name__)
-
-    def __ge__(self, other):
-        return self._compare(other, self.__ge__.__name__)
-
-    def __gt__(self, other):
-        return self._compare(other, self.__gt__.__name__)
 
     def __str__(self):
         """

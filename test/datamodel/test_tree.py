@@ -190,7 +190,7 @@ class TestForkNode(TestCase):
     def test_build_value_numpy(self):
         single_fork = TestNode.get_fork_node()
         single_fork_values = TestNode.get_random_fork_values()
-        single_fork_built_values = single_fork.build_value(value=single_fork_values, method='numpy')
+        single_fork_built_values = single_fork.get_data_type().build_numpy_value(value=single_fork_values)
 
         self.assertEqual(float(single_fork_values['leaf-float']), single_fork_built_values['leaf-float'])
         self.assertEqual(np.datetime64(single_fork_values['leaf-date']).astype('<M8[D]'),
@@ -205,7 +205,7 @@ class TestForkNode(TestCase):
         single_fork_values['level2'] = {}
         single_fork_values['level2']['leaf2-string'] = np.random.choice(['q', 'w', 'e', 'r'])
         single_fork_values['level2']['leaf2-float'] = str(np.random.random())
-        single_fork_built_values = fork_for_test.build_value(value=single_fork_values, method='numpy')
+        single_fork_built_values = fork_for_test.get_data_type().build_numpy_value(value=single_fork_values)
 
         self.assertEqual(float(single_fork_values['leaf-float']), single_fork_built_values['leaf-float'])
         self.assertEqual(np.datetime64(single_fork_values['leaf-date']).astype('<M8[D]'),
@@ -219,7 +219,7 @@ class TestForkNode(TestCase):
     def test_build_value_python(self):
         single_fork = TestNode.get_fork_node()
         single_fork_values = TestNode.get_random_fork_values()
-        single_fork_built_values = single_fork.build_value(value=single_fork_values, method='python')
+        single_fork_built_values = single_fork.get_data_type().build_python_value(value=single_fork_values)
 
         self.assertEqual(float(single_fork_values['leaf-float']), single_fork_built_values['leaf-float'])
         self.assertEqual(datetime.strptime(single_fork_values['leaf-date'], "%Y-%m-%d %H:%M:%S.%f"),
@@ -234,10 +234,10 @@ class TestForkNode(TestCase):
         single_fork_values['level2'] = {}
         single_fork_values['level2']['leaf2-string'] = np.random.choice(['q', 'w', 'e', 'r'])
         single_fork_values['level2']['leaf2-float'] = str(np.random.random())
-        single_fork_built_values = fork_for_test.build_value(value=single_fork_values, method='numpy')
+        single_fork_built_values = fork_for_test.get_data_type().build_python_value(value=single_fork_values)
 
         self.assertEqual(float(single_fork_values['leaf-float']), single_fork_built_values['leaf-float'])
-        self.assertEqual(np.datetime64(single_fork_values['leaf-date']).astype('<M8[D]'),
+        self.assertEqual(datetime.strptime(single_fork_values['leaf-date'], "%Y-%m-%d %H:%M:%S.%f"),
                          single_fork_built_values['leaf-date'])
         self.assertEqual(single_fork_values['leaf-string'], single_fork_built_values['leaf-string'])
         self.assertEqual(single_fork_built_values['level2']['leaf2-string'],

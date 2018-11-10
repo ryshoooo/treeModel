@@ -227,7 +227,7 @@ class TestTreeRow(TestCase):
     def test_build_row(self):
         tr = TreeRow({'foo': 12})
         self.assertTrue(tr.row is None)
-        tr.build_row({})
+        tr.build_row({}, method='numpy')
         self.assertTrue(tr.row is not None)
 
     def test_get_schema(self):
@@ -256,14 +256,14 @@ class TestTreeRow(TestCase):
         # Case 1
         input_row = {'foo': "2018-01-01"}
         tr = TreeRow(input_row)
-        output_row = tr.build_tree(input_row)
+        output_row = tr.build_tree(input_row, method='numpy')
 
         self.assertEqual(input_row, output_row)
 
         # Case 2
         input_row = {'foo': "2018-01-01", 'foo2': [1, 2, 3]}
         tr = TreeRow(input_row)
-        output_row = tr.build_tree(input_row)
+        output_row = tr.build_tree(input_row, method='numpy')
 
         self.assertEqual(input_row['foo'], output_row['foo'])
         self.assertTrue((input_row['foo2'] == output_row['foo2']).all())
@@ -275,7 +275,7 @@ class TestTreeRow(TestCase):
                                      'level2-array': [{"array_tree_0": 0, "array_tree_1": "sd"}, {"b": 1}]},
                      "level1": "OK"}
         tr = TreeRow(input_row)
-        output_row = tr.build_tree(input_row)
+        output_row = tr.build_tree(input_row, method='numpy')
 
         self.assertEqual(input_row['level1-float'], output_row['level1-float'])
         self.assertEqual(input_row['level1'], output_row['level1'])
@@ -344,7 +344,7 @@ class TestTreeRow(TestCase):
 
     def test_infer_schema(self):
         input_dict, expected_output = DataGenerator.sample_dict_for_test_schema_v1()
-        
+
         tr = TreeRow(input_dict)
         self.assertEqual(str(expected_output), str(tr.infer_schema(input_dict)))
 
@@ -437,7 +437,7 @@ class TestTreeDataSet(TestCase):
 
         # Case 1: Dictionary + no schema
         expected_schema = self.get_schema_for_json_data_same_schema()
-        tr = TreeDataSet._get_tree_row(input_row=data, schema=None)
+        tr = TreeDataSet._get_tree_row(input_row=data, schema=None, method='numpy')
         self.assertTrue(isinstance(tr, TreeRow))
         self.assertEqual(expected_schema, tr.schema)
         self._assert_equal_dictionaries(data, tr.row)
@@ -452,22 +452,22 @@ class TestTreeDataSet(TestCase):
         schema = schema.set_data_type('level1-date', DateDataType(resolution='D', format_string='%Y-%m-%d'))
         schema = schema.set_data_type('level1-fork/level2-date', DateDataType(resolution='D', format_string='%Y-%m-%d'))
 
-        tr = TreeDataSet._get_tree_row(input_row=data, schema=schema)
+        tr = TreeDataSet._get_tree_row(input_row=data, schema=schema, method='numpy')
 
         self.assertTrue(isinstance(tr, TreeRow))
         self.assertEqual(expected_schema, tr.schema)
         self._assert_equal_dictionaries(data, tr.row)
 
         # Case 3: TreeRow + no schema
-        tr = TreeRow(input_row=data).build_row(input_row=data)
+        tr = TreeRow(input_row=data).build_row(input_row=data, method='numpy')
         expected_schema = self.get_schema_for_json_data_same_schema()
-        tr = TreeDataSet._get_tree_row(input_row=tr, schema=None)
+        tr = TreeDataSet._get_tree_row(input_row=tr, schema=None, method='numpy')
         self.assertTrue(isinstance(tr, TreeRow))
         self.assertEqual(expected_schema, tr.schema)
         self._assert_equal_dictionaries(data, tr.row)
 
         # Case 4: TreeRow + schema
-        tr = TreeRow(input_row=data).build_row(input_row=data)
+        tr = TreeRow(input_row=data).build_row(input_row=data, method='numpy')
 
         expected_schema = self.get_schema_for_json_data_same_schema()
         expected_schema = expected_schema.set_data_type('level1-date',
@@ -478,7 +478,7 @@ class TestTreeDataSet(TestCase):
         schema = schema.set_data_type('level1-date', DateDataType(resolution='D', format_string='%Y-%m-%d'))
         schema = schema.set_data_type('level1-fork/level2-date', DateDataType(resolution='D', format_string='%Y-%m-%d'))
 
-        tr = TreeDataSet._get_tree_row(input_row=tr, schema=schema)
+        tr = TreeDataSet._get_tree_row(input_row=tr, schema=schema, method='numpy')
 
         self.assertTrue(isinstance(tr, TreeRow))
         self.assertEqual(expected_schema, tr.schema)

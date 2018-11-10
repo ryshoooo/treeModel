@@ -29,13 +29,14 @@ class TreeRow(object):
 
         self.row = None
 
-    def build_row(self, input_row):
+    def build_row(self, input_row, method):
         """
         Construct TreeRow object from the input_row and specified schema.
         :param input_row: Dictionary with input data.
+        :param method: String
         :return: TreeRow object with the input data.
         """
-        self.row = self.build_tree(input_row)
+        self.row = self.build_tree(input_row, method)
         return self
 
     def get_schema(self):
@@ -61,16 +62,22 @@ class TreeRow(object):
 
         return self
 
-    def build_tree(self, input_row):
+    def build_tree(self, input_row, method):
         """
         Method which builds tree from input dictionary.
         :param input_row: Dictionary with the input data.
+        :param method: String
         :return: Dictionary with the typed data.
         """
         if not isinstance(input_row, dict):
             input_row = dict(input_row)
 
-        return self.schema.base_fork_node.build_value(input_row)
+        if method == 'numpy':
+            return self.schema.base_fork_node.get_data_type().build_numpy_value(input_row)
+        elif method == 'python':
+            return self.schema.base_fork_node.get_data_type().build_python_value(input_row)
+        else:
+            raise RuntimeError("Unknown method: '{}'".format(method))
 
     @staticmethod
     def _is_float(n):
@@ -164,9 +171,10 @@ class TreeDataSet(object):
     :param schema: Either None or TreeSchema specifying the schema for every row or collection of TreeSchemas
         specifying the TreeSchema for each input row in order. In case the schema is None, each row will infer the
         schema automatically.
+    :param method: String specifying the method to build each row, either 'python' or 'numpy'
     """
 
-    def __init__(self, input_rows, schema=None):
+    def __init__(self, input_rows, schema=None, method='numpy'):
         """
         Initialize the dataset object.
         """
@@ -177,20 +185,25 @@ class TreeDataSet(object):
             if not isinstance(row, (dict, TreeRow)):
                 raise AttributeError("Input rows have to be of dictionary or tree type!")
 
+        if method not in ['numpy', 'python']:
+            raise ValueError("Unknown input method: '{}'".format(method))
+
         if schema is None or isinstance(schema, TreeSchema):
-            self.data = np.array([self._get_tree_row(input_row=row, schema=schema) for row in input_rows])
+            self.data = np.array([self._get_tree_row(input_row=row, schema=schema, method=method)
+                                  for row in input_rows])
         elif isinstance(schema, (collections.Sequence, np.ndarray)):
-            self.data = np.array([self._get_tree_row(input_row=input_rows[ind], schema=val)
+            self.data = np.array([self._get_tree_row(input_row=input_rows[ind], schema=val, method=method)
                                   for ind, val in enumerate(schema)])
         else:
             raise AttributeError("Incorrect format of input schema!")
 
     @staticmethod
-    def _get_tree_row(input_row, schema):
+    def _get_tree_row(input_row, schema, method):
         """
         Helper method to get tree row with specified schema.
         :param input_row: Either a python dictionary or built TreeRow.
         :param schema: None or TreeSchema. In case of None, the schema for the row will be inferred automatically.
+        :param method: String specifying the built method.
         :return: TreeRow with built row.
         """
         if isinstance(input_row, TreeRow):
@@ -198,13 +211,13 @@ class TreeDataSet(object):
                 return input_row
             elif isinstance(schema, TreeSchema):
                 input_row = input_row.set_schema(schema)
-                return input_row.build_row(input_row.row)
+                return input_row.build_row(input_row.row, method)
             else:
                 raise AttributeError("Input schema parameter is not a TreeSchema object!")
         else:
             if schema is None:
-                return TreeRow(input_row=input_row).build_row(input_row=input_row)
+                return TreeRow(input_row=input_row).build_row(input_row=input_row, method=method)
             elif isinstance(schema, TreeSchema):
-                return TreeRow(input_row=input_row, schema=schema).build_row(input_row=input_row)
+                return TreeRow(input_row=input_row, schema=schema).build_row(input_row=input_row, method=method)
             else:
                 raise AttributeError("Input schema parameter is not a TreeSchema object!")

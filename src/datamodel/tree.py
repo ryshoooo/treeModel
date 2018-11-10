@@ -1,5 +1,5 @@
-from .datatypes import DataType, StringDataType, ListDataType
-from copy import deepcopy, copy
+from .datatypes import DataType
+from copy import deepcopy
 from functools import reduce
 import collections
 import numpy as np
@@ -41,7 +41,7 @@ class TreeDataType(DataType):
         """
         if not isinstance(value, dict):
             raise AttributeError("Cannot build non-dictionary-like input in TreeDataType!")
-        return self.base_fork.build_value(self.get_numpy_type().type(value), 'numpy')
+        return self._build_value(self.get_numpy_type().type(value), 'numpy')
 
     def build_python_value(self, value):
         """
@@ -52,7 +52,50 @@ class TreeDataType(DataType):
         if not isinstance(value, dict):
             raise AttributeError("Cannot build non-dictionary-like input in TreeDataType!")
 
-        return self.base_fork.build_value(self.get_python_type()(value), 'python')
+        return self._build_value(self.get_python_type()(value), 'python')
+
+    def _build_value(self, value, method):
+        """
+        Method which builds tree to the specific data type of the tree.
+        :param value: Dictionary
+        :param method: String specifying the building method (numpy or python)
+        :return: Dictionary with its values casted to the correct type.
+        """
+        value_safe = value.copy()
+        if not isinstance(value_safe, dict):
+            raise RuntimeError("Incorrect input format of the value!")
+
+        for name in value_safe.keys():
+            if name not in self.base_fork.get_children_names():
+                raise RuntimeError(
+                    "Unknown node of name '{}' not specified in the Node '{}'".format(name, self.base_fork.name))
+
+        for name in self.base_fork.get_children_names():
+            if method == 'numpy':
+                try:
+                    value_safe[name] = self.base_fork.find_child(name).get_data_type().build_numpy_value(
+                        value_safe[name])
+                except KeyError:
+                    child_data_type = self.base_fork.find_child(name).get_data_type()
+                    value_safe[name] = child_data_type.build_numpy_value(child_data_type.numpy_na_value)
+            elif method == 'python':
+                try:
+                    value_safe[name] = self.base_fork.find_child(name).get_data_type().build_python_value(
+                        value_safe[name])
+                except KeyError:
+                    child_data_type = self.base_fork.find_child(name).get_data_type()
+                    value_safe[name] = child_data_type.build_python_value(child_data_type.python_na_value)
+            else:
+                raise AttributeError("Method '{}' is not supported!".format(method))
+
+        return value_safe
+
+    def _compare(self, other, method):
+        if not isinstance(other, TreeDataType):
+            warn("Cannot compare TreeDataType to '{}'".format(type(other)), UserWarning)
+            return False
+
+        return self.base_fork.__getattribute__(method)(other.base_fork)
 
     def __str__(self):
         return """TreeDataType({})""".format(str(self.base_fork))
@@ -65,18 +108,6 @@ class TreeDataType(DataType):
             return False
         else:
             return self.base_fork == other.base_fork
-
-    def __le__(self, other):
-        raise AttributeError("Comparisons for trees are not allowed! (yet)")
-
-    def __ge__(self, other):
-        raise AttributeError("Comparisons for trees are not allowed! (yet)")
-
-    def __gt__(self, other):
-        raise AttributeError("Comparisons for trees are not allowed! (yet)")
-
-    def __lt__(self, other):
-        raise AttributeError("Comparisons for trees are not allowed! (yet)")
 
 
 class Node(object):
@@ -153,6 +184,27 @@ class Node(object):
         self.data_type = deepcopy(data_type)
 
         return self
+
+    def _compare(self, other, method):
+        """
+        Generic method to compare Node with other nodes.
+        :param other: Node
+        :param method: String
+        :return: Boolean
+        """
+        raise NotImplementedError("Cannot compare generic Node!")
+
+    def __le__(self, other):
+        return self._compare(other, self.__le__.__name__)
+
+    def __ge__(self, other):
+        return self._compare(other, self.__ge__.__name__)
+
+    def __lt__(self, other):
+        return self._compare(other, self.__lt__.__name__)
+
+    def __gt__(self, other):
+        return self._compare(other, self.__gt__.__name__)
 
 
 class ForkNode(Node):
@@ -248,56 +300,42 @@ class ForkNode(Node):
         """
         Find specific child by name in all nodes of the fork.
         :param name: String
-        :return: Node
+        :return: List of Nodes
         """
         if not isinstance(name, str):
             raise ValueError("Input parameter 'name' has to be a string")
 
+        res = []
         for child in self.get_children():
             if child.get_name() == name:
-                return child
+                res.append(deepcopy(child))
 
             if isinstance(child, ForkNode):
-                found_child = child.find_child_in_any_branch(name)
-                if found_child is None:
-                    continue
-                else:
-                    return found_child
+                found_children = child.find_child_in_any_branch(name)
+                res += found_children
 
-        return None
+        return res
 
-    def build_value(self, value, method='numpy'):
-        """
-        Method which builds tree to the specific data type of the tree.
-        :param value: Dictionary
-        :param method: String specifying the building method (numpy or python)
-        :return: Dictionary with its values casted to the correct type.
-        """
-        value_safe = value.copy()
-        if not isinstance(value_safe, dict):
-            raise RuntimeError("Incorrect input format of the value!")
+    def _compare(self, other, method):
+        if not isinstance(other, (ForkNode, ChildNode)):
+            warn("Cannot compare ChildNode to {}".format(type(other)), UserWarning)
+            return False
 
-        for name in value_safe.keys():
-            if name not in self.get_children_names():
-                raise RuntimeError("Unknown node of name '{}' not specified in the Node '{}'".format(name, self.name))
-
-        for name in self.get_children_names():
-            if method == 'numpy':
-                try:
-                    value_safe[name] = self.find_child(name).get_data_type().build_numpy_value(value_safe[name])
-                except KeyError:
-                    child_data_type = self.find_child(name).get_data_type()
-                    value_safe[name] = child_data_type.build_numpy_value(child_data_type.numpy_na_value)
-            elif method == 'python':
-                try:
-                    value_safe[name] = self.find_child(name).get_data_type().build_python_value(value_safe[name])
-                except KeyError:
-                    child_data_type = self.find_child(name).get_data_type()
-                    value_safe[name] = child_data_type.build_python_value(child_data_type.python_na_value)
+        if isinstance(other, ChildNode):
+            if 'g' in method:
+                method = method.replace("g", "l")
             else:
-                raise AttributeError("Method '{}' is not supported!".format(method))
+                method = method.replace("l", "g")
+            return other.__getattribute__(method)(self)
 
-        return value_safe
+        if self.get_name() != other.get_name():
+            return False
+
+        my_children = self.get_children()
+        try:
+            return all([x.__getattribute__(method)(other.find_child(x.get_name())) for x in my_children])
+        except RuntimeError:
+            return False
 
     def __str__(self):
         """
@@ -378,6 +416,22 @@ class ChildNode(Node):
         self.set_name(name=name)
         self.set_data_type(data_type=data_type)
 
+    def _compare(self, other, method):
+        if not isinstance(other, (ForkNode, ChildNode)):
+            warn("Cannot compare ChildNode to {}".format(type(other)), UserWarning)
+            return False
+
+        if isinstance(other, ForkNode) and method in ('__le__', '__lt__'):
+            found_children = other.find_child_in_any_branch(self.get_name())
+            return any([self.__getattribute__(method)(x) for x in found_children])
+        elif isinstance(other, ForkNode) and method not in ('__le__', '__lt__'):
+            return False
+
+        if self.get_name() != other.get_name():
+            return False
+
+        return self.get_data_type().__getattribute__(method)(other.get_data_type())
+
     def __str__(self):
         return """{}({})""".format(self.get_name(), str(self.get_data_type()))
 
@@ -397,41 +451,6 @@ class ChildNode(Node):
         else:
             return True
 
-    def _compare(self, other, method):
-        """
-        Generic comparison method for ChildNode with other node.
-        :param other: Node
-        :param method: String
-        :return: Boolean
-        """
-        if not isinstance(other, (ForkNode, ChildNode)):
-            warn("Cannot compare ChildNode to {}".format(type(other)), UserWarning)
-            return False
-
-        if isinstance(other, ForkNode):
-            try:
-                found_child = other.find_child_in_any_branch(self.get_name())
-                return found_child == self
-            except RuntimeError:
-                return False
-
-        if self.get_name() != other.get_name():
-            return False
-
-        return self.get_data_type().__getattribute__(method)(other.get_data_type())
-
-    def __le__(self, other):
-        return self._compare(other, self.__le__.__name__)
-
-    def __ge__(self, other):
-        return self._compare(other, self.__ge__.__name__)
-
-    def __lt__(self, other):
-        return self._compare(other, self.__lt__.__name__)
-
-    def __gt__(self, other):
-        return self._compare(other, self.__gt__.__name__)
-
 
 class TreeSchema(object):
     """
@@ -450,46 +469,6 @@ class TreeSchema(object):
             raise AttributeError("Incorrect format of input base node!")
 
         self.base_fork_node = base_fork_node
-
-    def __str__(self):
-        """
-        String method on schema.
-        :return: String
-        """
-        return str(self.base_fork_node)
-
-    def __eq__(self, other):
-        """
-        Equality method on schema.
-        :param other: TreeSchema
-        :return: Boolean
-        """
-        if not isinstance(other, TreeSchema):
-            raise AttributeError("Cannot compare TreeSchema with '{}'".format(type(other)))
-
-        return self.base_fork_node == other.base_fork_node
-
-    def __mul__(self, other):
-        """
-        Multiplication method on schema, i.e. intersection of 2 schemas.
-        :param other: TreeSchema
-        :return: TreeSchema
-        """
-        if not isinstance(other, TreeSchema):
-            raise ValueError("Intersection of schemas can be performed only on TreeSchema objects!")
-
-        return TreeSchema(base_fork_node=self.base_fork_node * other.base_fork_node)
-
-    def __add__(self, other):
-        """
-        Addition method on schema, i.e. union of 2 schemas.
-        :param other: TreeSchema
-        :return: TreeSchema
-        """
-        if not isinstance(other, TreeSchema):
-            raise ValueError("Intersection of schemas can be performed only on TreeSchema objects!")
-
-        return TreeSchema(base_fork_node=self.base_fork_node + other.base_fork_node)
 
     def _traverse(self, arr_keys):
         """
@@ -531,9 +510,55 @@ class TreeSchema(object):
 
         return self
 
-    def create_dummy_nan_tree(self):
+    def create_dummy_nan_tree(self, method='numpy'):
         """
         Create dummy tree with NaN values.
+        :param method: String speciyfing the build method
         :return: Dictionary
         """
-        return self.base_fork_node.build_value(value={}, method='numpy')
+        if method == 'numpy':
+            return self.base_fork_node.get_data_type().build_numpy_value(value={})
+        elif method == 'python':
+            return self.base_fork_node.get_data_type().build_python_value(value={})
+        else:
+            raise ValueError("Unknown method: '{}'".format(method))
+
+    def __str__(self):
+        """
+        String method on schema.
+        :return: String
+        """
+        return str(self.base_fork_node)
+
+    def __eq__(self, other):
+        """
+        Equality method on schema.
+        :param other: TreeSchema
+        :return: Boolean
+        """
+        if not isinstance(other, TreeSchema):
+            raise AttributeError("Cannot compare TreeSchema with '{}'".format(type(other)))
+
+        return self.base_fork_node == other.base_fork_node
+
+    def __mul__(self, other):
+        """
+        Multiplication method on schema, i.e. intersection of 2 schemas.
+        :param other: TreeSchema
+        :return: TreeSchema
+        """
+        if not isinstance(other, TreeSchema):
+            raise ValueError("Intersection of schemas can be performed only on TreeSchema objects!")
+
+        return TreeSchema(base_fork_node=self.base_fork_node * other.base_fork_node)
+
+    def __add__(self, other):
+        """
+        Addition method on schema, i.e. union of 2 schemas.
+        :param other: TreeSchema
+        :return: TreeSchema
+        """
+        if not isinstance(other, TreeSchema):
+            raise ValueError("Intersection of schemas can be performed only on TreeSchema objects!")
+
+        return TreeSchema(base_fork_node=self.base_fork_node + other.base_fork_node)
