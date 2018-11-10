@@ -90,29 +90,46 @@ class TreeRow(object):
         Helper method which creates a Node object based on the input element.
         :param value: Input value, which's type is being inferred.
         :param name: Name of the Node.
-        :param current_level: Integers specifying the level of the Node in the tree hierarchy.
+        :param current_level: Integer specifying the level of the Node in the tree hierarchy.
         :param within_array: Boolean specifying whether this value is from a list
         :return: Node object with specified type and name
         """
-        if isinstance(value, dict) and not within_array:
-            return self._infer_fork_type(value, name, current_level + 1)
-        elif isinstance(value, dict) and within_array:
-            return self._infer_fork_type(value, name, current_level + 2)
+        if isinstance(value, dict):
+            return self._infer_fork_type(value, name, current_level + 1 + within_array)
         elif isinstance(value, list):
-            elements = [self._infer_element(value[x], '{}'.format(name, x), current_level, True) for x in
-                        range(len(value))]
-            elements_types = [x.get_data_type() for x in elements]
-            if len(set([str(x) for x in elements_types])) <= 1:
-                return ChildNode(name=name, data_type=ArrayDataType(element_data_type=elements_types[0]))
-            else:
-                elements_types = [elements[x].set_name("{}_{}".format(name, x)).get_data_type()
-                                  for x in range(len(elements))]
-                return ChildNode(name=name, data_type=ListDataType(element_data_types=elements_types,
-                                                                   level=current_level + 1))
+            return self._infer_list_type(value, name, current_level)
         elif isinstance(value, float) or self._is_float(value):
             return ChildNode(name=name, data_type=FloatDataType())
         else:
             return ChildNode(name=name, data_type=StringDataType())
+
+    def _infer_list_type(self, value, name, current_level):
+        """
+        Helper method which creates a Node object based on the value in list format.
+        :param value: List of values
+        :param name: String representing the name of the node
+        :param current_level: Integer specifying the level of the node
+        :return: Node
+        """
+        # First infer element of each list element
+        elements = [self._infer_element(x, name, current_level, True) for x in value]
+
+        # Get the inferred data types
+        try:
+            first, *rest = [x.get_data_type() for x in elements]
+        except ValueError:
+            first, rest = StringDataType(), []
+
+        # In case all the data types are equal, return ArrayDataType
+        if all([first == x for x in rest]):
+            return ChildNode(name=name, data_type=ArrayDataType(element_data_type=first))
+
+        # Otherwise return list data type
+        else:
+            elements_types = [element.set_name("{}_{}".format(name, ind)).get_data_type() for ind, element in
+                              enumerate(elements)]
+            return ChildNode(name=name, data_type=ListDataType(element_data_types=elements_types,
+                                                               level=current_level + 1))
 
     def _infer_fork_type(self, input_dict, key, level):
         """

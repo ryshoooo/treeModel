@@ -128,13 +128,8 @@ class DataGenerator(object):
         }
         return d
 
-
-class TestTreeRow(TestCase):
-    """
-    Test class for the TreeRow.
-    """
-
-    def test_print(self):
+    @staticmethod
+    def simple_dict_for_print_v1():
         input_row = {"level1-float": 12.2,
                      "level1-list": ["s", 2],
                      'level1-fork': {'level2-string': 'wrq2',
@@ -162,8 +157,10 @@ class TestTreeRow(TestCase):
 	            ))
     )"""
 
-        self.assertEqual(str(TreeRow(input_row).schema), expected_output)
+        return input_row, expected_output
 
+    @staticmethod
+    def simple_dict_for_print_v2():
         input_row = {"level1-float": 12.2,
                      "level1-list": ["s", 2],
                      'level1-fork': {'level2-string': 'wrq2',
@@ -184,6 +181,20 @@ class TestTreeRow(TestCase):
 		FloatDataType
 	            ))
     )"""
+
+        return input_row, expected_output
+
+
+class TestTreeRow(TestCase):
+    """
+    Test class for the TreeRow.
+    """
+
+    def test_print(self):
+        input_row, expected_output = DataGenerator.simple_dict_for_print_v1()
+        self.assertEqual(str(TreeRow(input_row).schema), expected_output)
+
+        input_row, expected_output = DataGenerator.simple_dict_for_print_v2()
         self.assertEqual(str(TreeRow(input_row).schema), expected_output)
 
     def test_build_row(self):
@@ -278,6 +289,11 @@ class TestTreeRow(TestCase):
         self.assertTrue(isinstance(fork_test, ForkNode))
         self.assertTrue(isinstance(fork_test.get_data_type(), TreeDataType))
         self.assertEqual(fork_test.level, 2)
+
+        child_empty_list = tr._infer_element(value=[], name="empty_list", current_level=1, within_array=False)
+        self.assertTrue(isinstance(child_empty_list, ChildNode))
+        self.assertTrue(isinstance(child_empty_list.get_data_type(), ArrayDataType))
+        self.assertTrue(isinstance(child_empty_list.get_data_type().element_data_type, StringDataType))
 
     def test__infer_fork_type(self):
         tr = TreeRow({'foo': 1})
@@ -408,7 +424,8 @@ class TestTreeDataSet(TestCase):
     def test___init__(self):
         # Same schema
         tds = TreeDataSet(input_rows=self.get_json_data_same_schema())
-        self.assertEqual(len(set([str(x.schema) for x in tds.data])), 1)
+        first, *rest = [x.schema for x in tds.data]
+        self.assertTrue(all([first == x for x in rest]))
 
     def test__get_tree_row(self):
         data = self.get_json_data_same_schema()[0]
