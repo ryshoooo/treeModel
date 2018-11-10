@@ -184,6 +184,33 @@ class DataGenerator(object):
 
         return input_row, expected_output
 
+    @staticmethod
+    def sample_dict_for_test_schema_v1():
+        input_dict = {
+            'a': 23,
+            'b': {
+                'c': "sa",
+                'd': [{"s": 1}, 12.3],
+                'e': ["a", "b", "c"]
+            }
+        }
+
+        expected_output = TreeSchema(base_fork_node=ForkNode(name="base", children=[
+            ChildNode(name="a", data_type=FloatDataType()),
+            ForkNode(name="b", children=[
+                ChildNode(name="c", data_type=StringDataType()),
+                ChildNode(name="d", data_type=ListDataType(element_data_types=[
+                    TreeDataType(
+                        base_fork=ForkNode(name="d_0", children=[ChildNode(name="s", data_type=FloatDataType())],
+                                           level=4)),
+                    FloatDataType()
+                ], level=3)),
+                ChildNode(name="e", data_type=ArrayDataType(element_data_type=StringDataType()))
+            ], level=2)
+        ], level=1))
+
+        return input_dict, expected_output
+
 
 class TestTreeRow(TestCase):
     """
@@ -316,31 +343,9 @@ class TestTreeRow(TestCase):
         self.assertTrue(isinstance(fork_out.find_child('foo2').find_child('arr').get_data_type(), ListDataType))
 
     def test_infer_schema(self):
-        input_dict = {
-            'a': 23,
-            'b': {
-                'c': "sa",
-                'd': [{"s": 1}, 12.3],
-                'e': ["a", "b", "c"]
-            }
-        }
-
+        input_dict, expected_output = DataGenerator.sample_dict_for_test_schema_v1()
+        
         tr = TreeRow(input_dict)
-
-        expected_output = TreeSchema(base_fork_node=ForkNode(name="base", children=[
-            ChildNode(name="a", data_type=FloatDataType()),
-            ForkNode(name="b", children=[
-                ChildNode(name="c", data_type=StringDataType()),
-                ChildNode(name="d", data_type=ListDataType(element_data_types=[
-                    TreeDataType(
-                        base_fork=ForkNode(name="d_0", children=[ChildNode(name="s", data_type=FloatDataType())],
-                                           level=4)),
-                    FloatDataType()
-                ], level=3)),
-                ChildNode(name="e", data_type=ArrayDataType(element_data_type=StringDataType()))
-            ], level=2)
-        ], level=1))
-
         self.assertEqual(str(expected_output), str(tr.infer_schema(input_dict)))
 
 
