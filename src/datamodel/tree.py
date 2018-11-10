@@ -434,15 +434,14 @@ class TreeSchema(object):
 
         return TreeSchema(base_fork_node=self.base_fork_node + other.base_fork_node)
 
-    @staticmethod
-    def _traverse(fork_node, arr_keys):
+    def _traverse(self, arr_keys):
         """
         Helper method which traverses through the tree.
         :param fork_node: ForkNode in which we currently are.
         :param arr_keys: List of strings representing the keys in order to traverse through.
         :return: Node
         """
-        return reduce(lambda x, y: x.find_child(y), arr_keys, fork_node)
+        return reduce(lambda x, y: x.find_child(y), arr_keys, self.base_fork_node)
 
     def find_data_type(self, name):
         """
@@ -455,7 +454,7 @@ class TreeSchema(object):
             raise ValueError("Parameter 'name' has to be a string!")
 
         arr_keys = name.split("/")
-        return self._traverse(self.base_fork_node, arr_keys).get_data_type()
+        return self._traverse(arr_keys).get_data_type()
 
     def set_data_type(self, name, data_type):
         """
@@ -471,7 +470,7 @@ class TreeSchema(object):
             raise ValueError("Parameter 'data_type' has to be a DataType!")
 
         arr_keys = name.split("/")
-        self._traverse(self.base_fork_node, arr_keys).set_data_type(data_type)
+        self._traverse(arr_keys).set_data_type(data_type)
 
         return self
 
