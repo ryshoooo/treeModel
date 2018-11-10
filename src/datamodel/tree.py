@@ -278,8 +278,13 @@ class ForkNode(Node):
         return value_safe
 
     def __str__(self):
+        """
+        Format the ForkNode into a string, add tab for each child based on the level of the fork.
+        :return: String
+        """
+        children_str = ("\n" + "\t" * self.level).join([str(x) for x in self.children])
         return str("{}(\n" + "\t" * self.level + "{}\n" + "\t" * (self.level - 1) + " " * len(self.get_name()) + ")") \
-            .format(self.get_name(), ("\n" + "\t" * self.level).join([str(x) for x in self.children]))
+            .format(self.get_name(), children_str)
 
     def __eq__(self, other):
         if not isinstance(other, Node):
