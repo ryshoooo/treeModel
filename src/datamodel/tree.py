@@ -244,6 +244,28 @@ class ForkNode(Node):
                 "Impossible error achieved! More than 1 child found with the same "
                 "name '{}' in Node '{}'".format(name, self.name))
 
+    def find_child_in_any_branch(self, name):
+        """
+        Find specific child by name in all nodes of the fork.
+        :param name: String
+        :return: Node
+        """
+        if not isinstance(name, str):
+            raise ValueError("Input parameter 'name' has to be a string")
+
+        for child in self.get_children():
+            if child.get_name() == name:
+                return child
+
+            if isinstance(child, ForkNode):
+                found_child = child.find_child_in_any_branch(name)
+                if found_child is None:
+                    continue
+                else:
+                    return found_child
+
+        return None
+
     def build_value(self, value, method='numpy'):
         """
         Method which builds tree to the specific data type of the tree.
@@ -374,6 +396,41 @@ class ChildNode(Node):
             return False
         else:
             return True
+
+    def _compare(self, other, method):
+        """
+        Generic comparison method for ChildNode with other node.
+        :param other: Node
+        :param method: String
+        :return: Boolean
+        """
+        if not isinstance(other, (ForkNode, ChildNode)):
+            warn("Cannot compare ChildNode to {}".format(type(other)), UserWarning)
+            return False
+
+        if isinstance(other, ForkNode):
+            try:
+                found_child = other.find_child_in_any_branch(self.get_name())
+                return found_child == self
+            except RuntimeError:
+                return False
+
+        if self.get_name() != other.get_name():
+            return False
+
+        return self.get_data_type().__getattribute__(method)(other.get_data_type())
+
+    def __le__(self, other):
+        return self._compare(other, self.__le__.__name__)
+
+    def __ge__(self, other):
+        return self._compare(other, self.__ge__.__name__)
+
+    def __lt__(self, other):
+        return self._compare(other, self.__lt__.__name__)
+
+    def __gt__(self, other):
+        return self._compare(other, self.__gt__.__name__)
 
 
 class TreeSchema(object):

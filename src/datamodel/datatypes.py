@@ -83,13 +83,16 @@ class DataType(object):
         if not isinstance(other, DataType):
             raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
 
-        return self == other
+        if isinstance(other, StringDataType):
+            return True
+        else:
+            return self == other
 
     def __lt__(self, other):
         if not isinstance(other, DataType):
             raise AttributeError("Cannot compare DataType to '{}'".format(type(other)))
 
-        return False
+        return isinstance(other, StringDataType)
 
     def __ge__(self, other):
         if not isinstance(other, DataType):
