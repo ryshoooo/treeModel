@@ -525,10 +525,14 @@ class ListDataType(DataType):
             return False
 
     def __str__(self):
-        return str(
-            "ListDataType(\n" + "\t" * self.level + "{}\n" + "\t" * (self.level - 1) +
-            " " * len("ListDataType") + ")").format(
-            ("\n" + "\t" * self.level).join([str(x) for x in self.element_data_types]))
+        """
+        Format list data type into a string, add tab for each element based on the current level.
+        :return: String
+        """
+        elements_str = ("\n" + "\t" * self.level).join([str(x) for x in self.element_data_types])
+        
+        return str("ListDataType(\n" + "\t" * self.level + "{}\n" + "\t" * (self.level - 1) + " " * len(
+            "ListDataType") + ")").format(elements_str)
 
     def __eq__(self, other):
         if not isinstance(other, DataType):
