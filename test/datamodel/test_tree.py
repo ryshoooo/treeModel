@@ -118,6 +118,93 @@ class TestChildNode(TestCase):
         single_leaf2 = TestNode.get_single_string_leaf()
         self.assertEqual(single_leaf1, single_leaf2)
 
+    def test_mul(self):
+        c1 = ChildNode('a', FloatDataType())
+        c2 = ChildNode('a', StringDataType())
+        res = c1 * c2
+        self.assertEqual(res, c2)
+
+        f1 = ForkNode(
+            'f1',
+            [
+                ChildNode('b', StringDataType()),
+                ForkNode(
+                    'f2',
+                    [
+                        ChildNode('a', FloatDataType()),
+                        ChildNode('b', FloatDataType())
+                    ]
+                )
+            ]
+        )
+        res = c1 * f1
+        expected_res = ForkNode('f1', [ForkNode('f2', [ChildNode('a', FloatDataType())])])
+        self.assertEqual(res, expected_res)
+
+        f1 = ForkNode(
+            'f1',
+            [
+                ChildNode('a', StringDataType()),
+                ForkNode(
+                    'f2',
+                    [
+                        ChildNode('a', FloatDataType()),
+                        ChildNode('b', FloatDataType())
+                    ]
+                )
+            ]
+        )
+        with self.assertRaises(RuntimeError):
+            c1 * f1
+
+        d1 = ChildNode('d', FloatDataType())
+        self.assertEqual(c1 * d1, None)
+
+        f1 = ForkNode(
+            'f1',
+            [
+                ChildNode('b', StringDataType()),
+                ForkNode(
+                    'f2',
+                    [
+                        ChildNode('c', FloatDataType()),
+                        ChildNode('b', FloatDataType())
+                    ]
+                )
+            ]
+        )
+        self.assertEqual(c1 * f1, None)
+
+        f1 = ForkNode(
+            'a',
+            [
+                ChildNode('b', StringDataType()),
+                ForkNode(
+                    'f2',
+                    [
+                        ChildNode('c', FloatDataType()),
+                        ChildNode('b', FloatDataType())
+                    ]
+                )
+            ]
+        )
+        self.assertEqual(c1 * f1, None)
+
+        f1 = ForkNode(
+            'f1',
+            [
+                ChildNode('b', StringDataType()),
+                ForkNode(
+                    'a',
+                    [
+                        ChildNode('c', FloatDataType()),
+                        ChildNode('b', FloatDataType())
+                    ]
+                )
+            ]
+        )
+        self.assertEqual(c1 * f1, None)
+
 
 class TestForkNode(TestCase):
     """
@@ -287,6 +374,139 @@ class TestForkNode(TestCase):
         fork_for_test2 = ForkNode(name='test_find_child', children=single_fork2.get_children() + [new_fork])
         self.assertEqual(fork_for_test1, fork_for_test2)
 
+    def test_mul(self):
+        f1 = ForkNode(
+            'A',
+            [
+                ChildNode('B', StringDataType()),
+                ChildNode('C', FloatDataType())
+            ]
+        )
+
+        f2 = ForkNode(
+            'A',
+            [
+                ChildNode('C', StringDataType()),
+                ChildNode('D', FloatDataType()),
+                ChildNode('E', DateDataType())
+            ]
+        )
+
+        expected_res = ForkNode(
+            'A',
+            [
+                ChildNode('C', StringDataType())
+            ]
+        )
+
+        res = f1 * f2
+        self.assertEqual(res, expected_res)
+
+        f2 = ForkNode(
+            'A',
+            [
+                ChildNode('B', StringDataType()),
+                ForkNode(
+                    'D',
+                    [
+                        ChildNode('B', StringDataType()),
+                        ChildNode('C', StringDataType())
+                    ]
+                )
+            ]
+        )
+
+        with self.assertRaises(RuntimeError):
+            f1 * f2
+
+        f2 = ForkNode(
+            'A',
+            [
+                ChildNode('B', StringDataType()),
+                ForkNode(
+                    'D',
+                    [
+                        ChildNode('A', StringDataType()),
+                        ChildNode('C', StringDataType())
+                    ]
+                )
+            ]
+        )
+
+        with self.assertRaises(RuntimeError):
+            f1 * f2
+
+        f2 = ForkNode(
+            'C',
+            [
+                ChildNode('A', StringDataType()),
+                ChildNode('B', StringDataType())
+            ]
+        )
+
+        self.assertEqual(f1 * f2, None)
+
+        f2 = ForkNode(
+            'D',
+            [
+                ChildNode('C', StringDataType()),
+                ForkNode(
+                    'A',
+                    [
+                        ChildNode('B', StringDataType()),
+                        ChildNode('E', StringDataType())
+                    ],
+                    2
+                )
+            ],
+            1
+        )
+        expected_res = ForkNode(
+            'D',
+            [
+                ForkNode(
+                    'A',
+                    [
+                        ChildNode('B', StringDataType())
+                    ],
+                    2
+                )
+            ],
+            1
+        )
+        self.assertEqual(f1 * f2, expected_res)
+
+        f2 = ForkNode(
+            'A',
+            [
+                ChildNode('C', StringDataType()),
+                ForkNode(
+                    'D',
+                    [
+                        ChildNode('B', StringDataType()),
+                        ChildNode('E', StringDataType())
+                    ],
+                    2
+                )
+            ],
+            1
+        )
+        expected_res = ForkNode(
+            'A',
+            [
+                ChildNode('C', StringDataType()),
+                ForkNode(
+                    'D',
+                    [
+                        ChildNode('B', StringDataType())
+                    ],
+                    2
+                )
+            ],
+            1
+        )
+        self.assertEqual(f1 * f2, expected_res)
+
 
 class TestTreeSchema(TestCase):
     """
@@ -398,7 +618,7 @@ class TestTreeSchema(TestCase):
         ts_float = TreeSchema(base_fork_node=fork_1_float)
 
         ts_mul = ts_string * ts_float
-        self.assertEqual(ts_mul.base_fork_node.get_name(), "base")
+        self.assertEqual(ts_mul.base_fork_node.get_name(), "empty")
         self.assertEqual(len(ts_mul.base_fork_node.get_children()), 0)
 
         fork_1_string = ForkNode(name="base", children=[TestNode.get_single_string_leaf().set_name("foo")])

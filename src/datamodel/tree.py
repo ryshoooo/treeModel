@@ -292,10 +292,11 @@ class ForkNode(Node):
                 "Impossible error achieved! More than 1 child found with the same "
                 "name '{}' in Node '{}'".format(name, self.name))
 
-    def find_child_in_any_branch(self, name):
+    def find_child_in_any_branch(self, name, as_fork=False):
         """
         Find specific child by name in all nodes of the fork.
         :param name: String
+        :param as_fork: Boolean specifying whether the return value should be fork or not.
         :return: List of Nodes
         """
         if not isinstance(name, str):
@@ -307,10 +308,21 @@ class ForkNode(Node):
                 res.append(deepcopy(child))
 
             if isinstance(child, ForkNode):
-                found_children = child.find_child_in_any_branch(name)
+                found_children = child.find_child_in_any_branch(name, as_fork)
+
+                if as_fork and found_children is not None:
+                    found_children = [found_children]
+                if as_fork and found_children is None:
+                    found_children = []
+
                 res += found_children
 
-        return res
+        if as_fork and not res:
+            return None
+        if as_fork:
+            return ForkNode(self.get_name(), res, self.level)
+        else:
+            return res
 
     def is_subtree(self, other, direct=False):
         """
@@ -379,41 +391,53 @@ class ForkNode(Node):
                  False for child in self.get_children()])
 
     def __mul__(self, other):
-        if not isinstance(other, ForkNode):
-            raise ValueError("Intersection of forks can be performed only on ForkNode objects!")
+        if not isinstance(other, (ChildNode, ForkNode)):
+            raise ValueError("Intersection is not defined for type '{}'".format(type(other)))
 
-        if self.get_name() != other.get_name():
-            return ForkNode(name="empty", children=[])
+        if isinstance(other, ChildNode):
+            return other * self
 
-        other_children = other.get_children()
-        common_children = []
-        for child in self.get_children():
-            possibles = [x for x in other_children if x.get_name() == child.get_name() and type(x) == type(child)]
-            if not len(possibles):
-                continue
-            elif not len(possibles) - 1:
-                if isinstance(child, ForkNode):
-                    common_children.append(child * possibles[0])
-                elif isinstance(child, ChildNode):
-                    if child == possibles[0]:
-                        common_children.append(deepcopy(child))
-                    elif child.get_data_type() <= possibles[0].get_data_type():
-                        common_children.append(deepcopy(possibles[0]))
-                    elif child.get_data_type() >= possibles[0].get_data_type():
-                        common_children.append(deepcopy(child))
-                    else:
-                        warn("Data types of child '{}' are incomparable: {}, {}".format(child.get_name(),
-                                                                                        child.get_data_type(),
-                                                                                        possibles[0].get_data_type()),
-                             UserWarning)
-                        continue
-                else:
-                    raise ValueError("Incompatible type of a child: '{}'".format(type(child)))
+        found_branches = other.find_child_in_any_branch(self.get_name())
+
+        if len(found_branches) > 1 or (len(found_branches) > 0 and self.get_name() == other.get_name()):
+            raise RuntimeError("Cannot merge 2 forks by the same name! '{}'".format(self.get_name()))
+
+        if self.get_name() == other.get_name():
+            children = []
+            for child in self.get_children():
+                found_children = other.find_child_in_any_branch(child.get_name(), as_fork=False)
+
+                if len(found_children) > 1:
+                    raise RuntimeError(
+                        "Cannot merge 2 forks with children of the same name! '{}'".format(child.get_name()))
+
+                if not found_children:
+                    continue
+
+                merged_children = [child * other_child for other_child in other.get_children()]
+                merged_children = [x for x in merged_children if x is not None]
+
+                if len(merged_children) > 1:
+                    raise RuntimeError("Impossible error achieved, congratulations!")
+
+                children += merged_children
+
+            if not children:
+                return None
             else:
-                raise RuntimeError(
-                    "Impossible tree construction, 2 children cannot have the same name! '{}'".format(child.get_name()))
+                return ForkNode(name=self.get_name(), children=children, level=self.level)
 
-        return ForkNode(name=self.get_name(), children=common_children, level=self.level)
+        if not found_branches:
+            return None
+
+        larger_fork = other.find_child_in_any_branch(self.get_name(), as_fork=True)
+        larger_forks_merged_children = [x * self for x in larger_fork.get_children()]
+        larger_forks_merged_children = [x for x in larger_forks_merged_children if x is not None]
+
+        if not larger_forks_merged_children:
+            return None
+        else:
+            return larger_fork.set_children(larger_forks_merged_children)
 
 
 class ChildNode(Node):
@@ -467,6 +491,35 @@ class ChildNode(Node):
             return False
         else:
             return True
+
+    def __mul__(self, other):
+        if not isinstance(other, (ChildNode, ForkNode)):
+            raise ValueError("Cannot perform intersection on object of type '{}'!".format(tyoe(other)))
+
+        if isinstance(other, ChildNode):
+            if self <= other:
+                return deepcopy(other)
+            elif self >= other:
+                return deepcopy(self)
+            else:
+                return None
+
+        if self.get_name() == other.get_name():
+            return None
+
+        found_children = other.find_child_in_any_branch(self.get_name(), as_fork=False)
+
+        if not found_children:
+            return None
+        elif len(found_children) == 1:
+            if isinstance(found_children[0], ChildNode):
+                return other.find_child_in_any_branch(self.get_name(), as_fork=True)
+            else:
+                return None
+        elif len(found_children) > 1:
+            raise RuntimeError(
+                "Cannot perform intersection where there are multiple children of the same name: '{}'".format(
+                    self.get_name()))
 
 
 class TreeSchema(object):
@@ -567,7 +620,12 @@ class TreeSchema(object):
         if not isinstance(other, TreeSchema):
             raise ValueError("Intersection of schemas can be performed only on TreeSchema objects!")
 
-        return TreeSchema(base_fork_node=self.base_fork_node * other.base_fork_node)
+        merged_base_forks = self.base_fork_node * other.base_fork_node
+
+        if merged_base_forks is None:
+            return TreeSchema(base_fork_node=ForkNode('empty', []))
+        else:
+            return TreeSchema(base_fork_node=merged_base_forks)
 
     def __add__(self, other):
         """
