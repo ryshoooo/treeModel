@@ -39,29 +39,8 @@ class TreeDataType(DataType):
         :param value: Value to be converted.
         :return: Converted value of the specific data type.
         """
-        if not isinstance(value, dict):
-            raise AttributeError("Cannot build non-dictionary-like input in TreeDataType!")
-        return self._build_value(self.get_numpy_type().type(value), 'numpy')
+        value_safe = self.get_numpy_type().type(value).copy()
 
-    def build_python_value(self, value):
-        """
-        Method which converts the input value into the python type value.
-        :param value: Value to be converted.
-        :return: Converted value of the specific data type.
-        """
-        if not isinstance(value, dict):
-            raise AttributeError("Cannot build non-dictionary-like input in TreeDataType!")
-
-        return self._build_value(self.get_python_type()(value), 'python')
-
-    def _build_value(self, value, method):
-        """
-        Method which builds tree to the specific data type of the tree.
-        :param value: Dictionary
-        :param method: String specifying the building method (numpy or python)
-        :return: Dictionary with its values casted to the correct type.
-        """
-        value_safe = value.copy()
         if not isinstance(value_safe, dict):
             raise RuntimeError("Incorrect input format of the value!")
 
@@ -71,22 +50,35 @@ class TreeDataType(DataType):
                     "Unknown node of name '{}' not specified in the Node '{}'".format(name, self.base_fork.name))
 
         for name in self.base_fork.get_children_names():
-            if method == 'numpy':
-                try:
-                    value_safe[name] = self.base_fork.find_child(name).get_data_type().build_numpy_value(
-                        value_safe[name])
-                except KeyError:
-                    child_data_type = self.base_fork.find_child(name).get_data_type()
-                    value_safe[name] = child_data_type.build_numpy_value(child_data_type.numpy_na_value)
-            elif method == 'python':
-                try:
-                    value_safe[name] = self.base_fork.find_child(name).get_data_type().build_python_value(
-                        value_safe[name])
-                except KeyError:
-                    child_data_type = self.base_fork.find_child(name).get_data_type()
-                    value_safe[name] = child_data_type.build_python_value(child_data_type.python_na_value)
-            else:
-                raise AttributeError("Method '{}' is not supported!".format(method))
+            try:
+                value_safe[name] = self.base_fork.find_child(name).get_data_type().build_numpy_value(value_safe[name])
+            except KeyError:
+                child_data_type = self.base_fork.find_child(name).get_data_type()
+                value_safe[name] = child_data_type.build_numpy_value(child_data_type.numpy_na_value)
+
+        return value_safe
+
+    def build_python_value(self, value):
+        """
+        Method which converts the input value into the python type value.
+        :param value: Value to be converted.
+        :return: Converted value of the specific data type.
+        """
+        value_safe = self.get_python_type()(value).copy()
+        if not isinstance(value_safe, dict):
+            raise RuntimeError("Incorrect input format of the value!")
+
+        for name in value_safe.keys():
+            if name not in self.base_fork.get_children_names():
+                raise RuntimeError(
+                    "Unknown node of name '{}' not specified in the Node '{}'".format(name, self.base_fork.name))
+
+        for name in self.base_fork.get_children_names():
+            try:
+                value_safe[name] = self.base_fork.find_child(name).get_data_type().build_python_value(value_safe[name])
+            except KeyError:
+                child_data_type = self.base_fork.find_child(name).get_data_type()
+                value_safe[name] = child_data_type.build_python_value(child_data_type.python_na_value)
 
         return value_safe
 
