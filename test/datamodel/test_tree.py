@@ -712,6 +712,7 @@ class TestComparisonsChild(TestCase):
         self.assertTrue(sdt <= sdt)
         self.assertFalse(wc <= sdt)
         self.assertFalse(f[-1] <= sdt)
+        self.assertFalse(f[-1] <= f[0])
 
         self.assertFalse(dt > sdt)
         self.assertFalse(fdt > sdt)
@@ -753,7 +754,7 @@ class TestComparisonsChild(TestCase):
         self.assertTrue(f[0] < f[-1])
 
     def test_comparisons_float(self):
-        dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc = self.get_data_types()
+        dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc, *f = self.get_data_types()
 
         self.assertFalse(dt <= fdt)
         self.assertTrue(fdt <= fdt)
@@ -765,6 +766,8 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ldt_ssd <= fdt)
         self.assertFalse(sdt <= fdt)
         self.assertFalse(wc <= fdt)
+        self.assertFalse(f[-1] <= fdt)
+        self.assertFalse(f[-1] <= f[1])
 
         self.assertFalse(dt > fdt)
         self.assertFalse(fdt > fdt)
@@ -776,6 +779,8 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ldt_ssd > fdt)
         self.assertTrue(sdt > fdt)
         self.assertFalse(wc > fdt)
+        self.assertFalse(f[-1] > fdt)
+        self.assertTrue(f[-1] > f[1])
 
         self.assertFalse(fdt >= dt)
         self.assertTrue(fdt >= fdt)
@@ -787,6 +792,8 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(fdt >= ldt_ssd)
         self.assertFalse(fdt >= sdt)
         self.assertFalse(fdt <= wc)
+        self.assertFalse(fdt <= f[-1])
+        self.assertTrue(f[1] <= f[-1])
 
         self.assertFalse(fdt < dt)
         self.assertFalse(fdt < fdt)
@@ -798,9 +805,11 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(fdt < ldt_ssd)
         self.assertTrue(fdt < sdt)
         self.assertFalse(fdt < wc)
+        self.assertFalse(fdt < f[-1])
+        self.assertTrue(f[1] < f[-1])
 
     def test_comparisons_date_1(self):
-        dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc = self.get_data_types()
+        dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc, *f = self.get_data_types()
 
         self.assertFalse(dt <= ddt_d)
         self.assertFalse(fdt <= ddt_d)
@@ -812,6 +821,7 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ldt_ssd <= ddt_d)
         self.assertFalse(sdt <= ddt_d)
         self.assertFalse(wc <= ddt_d)
+        self.assertFalse(f[-1] <= ddt_d)
 
         self.assertFalse(dt > ddt_d)
         self.assertFalse(fdt > ddt_d)
@@ -823,6 +833,7 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ldt_ssd > ddt_d)
         self.assertTrue(sdt > ddt_d)
         self.assertFalse(wc > ddt_d)
+        self.assertFalse(f[-1] > ddt_d)
 
         self.assertFalse(ddt_d >= dt)
         self.assertFalse(ddt_d >= fdt)
@@ -834,6 +845,7 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ddt_d >= ldt_ssd)
         self.assertFalse(ddt_d >= sdt)
         self.assertFalse(ddt_d >= wc)
+        self.assertFalse(ddt_d >= f[-1])
 
         self.assertFalse(ddt_d < dt)
         self.assertFalse(ddt_d < fdt)
@@ -845,9 +857,10 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ddt_d < ldt_ssd)
         self.assertTrue(ddt_d < sdt)
         self.assertFalse(ddt_d < wc)
+        self.assertFalse(ddt_d < f[-1])
 
     def test_comparisons_date_2(self):
-        dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc = self.get_data_types()
+        dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc, *f = self.get_data_types()
 
         self.assertFalse(dt <= ddt_s)
         self.assertFalse(fdt <= ddt_s)
@@ -859,6 +872,8 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ldt_ssd <= ddt_s)
         self.assertFalse(sdt <= ddt_s)
         self.assertFalse(wc <= ddt_s)
+        self.assertFalse(f[-1] <= ddt_s)
+        self.assertFalse(f[-1] <= f[2])
 
         self.assertFalse(dt > ddt_s)
         self.assertFalse(fdt > ddt_s)
@@ -870,6 +885,8 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ldt_ssd > ddt_s)
         self.assertTrue(sdt > ddt_s)
         self.assertFalse(wc > ddt_s)
+        self.assertFalse(f[-1] > ddt_s)
+        self.assertTrue(f[-1] > f[2])
 
         self.assertFalse(ddt_s >= dt)
         self.assertFalse(ddt_s >= fdt)
@@ -881,6 +898,8 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ddt_s >= ldt_ssd)
         self.assertFalse(ddt_s >= sdt)
         self.assertFalse(ddt_s >= wc)
+        self.assertFalse(ddt_s >= f[-1])
+        self.assertFalse(f[2] >= f[-1])
 
         self.assertFalse(ddt_s < dt)
         self.assertFalse(ddt_s < fdt)
@@ -892,9 +911,11 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ddt_s < ldt_ssd)
         self.assertTrue(ddt_s < sdt)
         self.assertFalse(ddt_s < wc)
+        self.assertFalse(ddt_s < f[-1])
+        self.assertTrue(f[2] < f[-1])
 
     def test_comparisons_array_1(self):
-        dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc = self.get_data_types()
+        dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc, *f = self.get_data_types()
 
         self.assertFalse(dt <= adt_f)
         self.assertFalse(fdt <= adt_f)
@@ -906,6 +927,7 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ldt_ssd <= adt_f)
         self.assertFalse(sdt <= adt_f)
         self.assertFalse(wc <= adt_f)
+        self.assertFalse(f[-1] <= adt_f)
 
         self.assertFalse(dt > adt_f)
         self.assertFalse(fdt > adt_f)
@@ -917,6 +939,7 @@ class TestComparisonsChild(TestCase):
         self.assertTrue(ldt_ssd > adt_f)
         self.assertTrue(sdt > adt_f)
         self.assertFalse(wc > adt_f)
+        self.assertFalse(f[-1] > adt_f)
 
         self.assertFalse(adt_f >= dt)
         self.assertFalse(adt_f >= fdt)
@@ -928,6 +951,7 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(adt_f >= ldt_ssd)
         self.assertFalse(adt_f >= sdt)
         self.assertFalse(adt_f >= wc)
+        self.assertFalse(adt_f >= f[-1])
 
         self.assertFalse(adt_f < dt)
         self.assertFalse(adt_f < fdt)
@@ -939,9 +963,10 @@ class TestComparisonsChild(TestCase):
         self.assertTrue(adt_f < ldt_ssd)
         self.assertTrue(adt_f < sdt)
         self.assertFalse(adt_f < wc)
+        self.assertFalse(adt_f < f[-1])
 
     def test_comparisons_array_2(self):
-        dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc = self.get_data_types()
+        dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc, *f = self.get_data_types()
 
         self.assertFalse(dt <= adt_s)
         self.assertFalse(fdt <= adt_s)
@@ -953,6 +978,7 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ldt_ssd <= adt_s)
         self.assertFalse(sdt <= adt_s)
         self.assertFalse(wc <= adt_s)
+        self.assertFalse(f[-1] <= adt_s)
 
         self.assertFalse(dt > adt_s)
         self.assertFalse(fdt > adt_s)
@@ -964,6 +990,7 @@ class TestComparisonsChild(TestCase):
         self.assertTrue(ldt_ssd > adt_s)
         self.assertTrue(sdt > adt_s)
         self.assertFalse(wc > adt_s)
+        self.assertFalse(f[-1] > adt_s)
 
         self.assertFalse(adt_s >= dt)
         self.assertFalse(adt_s >= fdt)
@@ -975,6 +1002,7 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(adt_s >= ldt_ssd)
         self.assertFalse(adt_s >= sdt)
         self.assertFalse(adt_s >= wc)
+        self.assertFalse(adt_s >= f[-1])
 
         self.assertFalse(adt_s < dt)
         self.assertFalse(adt_s < fdt)
@@ -986,9 +1014,10 @@ class TestComparisonsChild(TestCase):
         self.assertTrue(adt_s < ldt_ssd)
         self.assertTrue(adt_s < sdt)
         self.assertFalse(adt_s < wc)
+        self.assertFalse(adt_s < f[-1])
 
     def test_comparisons_list_1(self):
-        dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc = self.get_data_types()
+        dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc, *f = self.get_data_types()
 
         self.assertFalse(dt <= ldt_fsd)
         self.assertFalse(fdt <= ldt_fsd)
@@ -1000,6 +1029,7 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ldt_ssd <= ldt_fsd)
         self.assertFalse(sdt <= ldt_fsd)
         self.assertFalse(wc <= ldt_fsd)
+        self.assertFalse(f[-1] <= ldt_fsd)
 
         self.assertFalse(dt > ldt_fsd)
         self.assertFalse(fdt > ldt_fsd)
@@ -1011,6 +1041,7 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ldt_ssd > ldt_fsd)
         self.assertTrue(sdt > ldt_fsd)
         self.assertFalse(wc > ldt_fsd)
+        self.assertFalse(f[-1] > ldt_fsd)
 
         self.assertFalse(ldt_fsd >= dt)
         self.assertFalse(ldt_fsd >= fdt)
@@ -1022,6 +1053,7 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ldt_fsd >= ldt_ssd)
         self.assertFalse(ldt_fsd >= sdt)
         self.assertFalse(ldt_fsd >= wc)
+        self.assertFalse(ldt_fsd >= f[-1])
 
         self.assertFalse(ldt_fsd < dt)
         self.assertFalse(ldt_fsd < fdt)
@@ -1033,9 +1065,10 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ldt_fsd < ldt_ssd)
         self.assertTrue(ldt_fsd < sdt)
         self.assertFalse(ldt_fsd < wc)
+        self.assertFalse(ldt_fsd < f[-1])
 
     def test_comparisons_list_2(self):
-        dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc = self.get_data_types()
+        dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc, *f = self.get_data_types()
 
         self.assertFalse(dt <= ldt_ssd)
         self.assertFalse(fdt <= ldt_ssd)
@@ -1046,7 +1079,8 @@ class TestComparisonsChild(TestCase):
         self.assertTrue(ldt_fsd <= ldt_ssd)
         self.assertTrue(ldt_ssd <= ldt_ssd)
         self.assertFalse(sdt <= ldt_ssd)
-        self.assertFalse(sdt <= wc)
+        self.assertFalse(wc <= ldt_ssd)
+        self.assertFalse(f[-1] <= ldt_ssd)
 
         self.assertFalse(dt > ldt_ssd)
         self.assertFalse(fdt > ldt_ssd)
@@ -1058,6 +1092,7 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ldt_ssd > ldt_ssd)
         self.assertTrue(sdt > ldt_ssd)
         self.assertFalse(sdt > wc)
+        self.assertFalse(f[-1] > ldt_ssd)
 
         self.assertFalse(ldt_ssd >= dt)
         self.assertFalse(ldt_ssd >= fdt)
@@ -1069,6 +1104,7 @@ class TestComparisonsChild(TestCase):
         self.assertTrue(ldt_ssd >= ldt_ssd)
         self.assertFalse(ldt_ssd >= sdt)
         self.assertFalse(ldt_ssd >= wc)
+        self.assertFalse(ldt_ssd >= f[-1])
 
         self.assertFalse(ldt_ssd < dt)
         self.assertFalse(ldt_ssd < fdt)
@@ -1080,3 +1116,4 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ldt_ssd < ldt_ssd)
         self.assertTrue(ldt_ssd < sdt)
         self.assertFalse(ldt_ssd < wc)
+        self.assertFalse(ldt_ssd < f[-1])
