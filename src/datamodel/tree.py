@@ -91,11 +91,14 @@ class TreeDataType(DataType):
         return value_safe
 
     def _compare(self, other, method):
-        if not isinstance(other, TreeDataType):
+        if not isinstance(other, DataType):
             warn("Cannot compare TreeDataType to '{}'".format(type(other)), UserWarning)
             return False
 
-        return self.base_fork.__getattribute__(method)(other.base_fork)
+        if isinstance(other, TreeDataType):
+            return self.base_fork.__getattribute__(method)(other.base_fork)
+
+        return any([x.get_data_type().__getattribute__(method)(other) for x in self.base_fork.get_children()])
 
     def __str__(self):
         return """TreeDataType({})""".format(str(self.base_fork))
