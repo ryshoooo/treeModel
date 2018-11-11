@@ -5,6 +5,8 @@ from copy import copy
 
 from src.datamodel.tree import ChildNode, ForkNode, TreeSchema, TreeDataType
 from src.datamodel.datatypes import StringDataType, FloatDataType, DateDataType, DataType, ArrayDataType, ListDataType
+from test.datamodel.test_base import TreeDataSetTestCase
+from test.datamodel.testdata.data_repo import DataGenerator
 
 
 class TestNode(TestCase):
@@ -187,6 +189,30 @@ class TestForkNode(TestCase):
             fork_for_test.find_child('nonexistent')
         except RuntimeError as e:
             self.assertEqual("Child 'nonexistent' was not found in 'test_find_child'", str(e))
+
+    def test_find_child_in_any_branch(self):
+        test_fork = ForkNode(
+            name='foo',
+            children=[
+                ChildNode('a', StringDataType()),
+                ChildNode('b', FloatDataType()),
+                ForkNode(name='foo2', children=[
+                    ChildNode('a', FloatDataType()),
+                    ChildNode('b', StringDataType()),
+                    ChildNode('c', DateDataType(resolution='D'))
+                ])
+            ]
+        )
+
+        self.assertEqual(len(test_fork.find_child_in_any_branch('a')), 2)
+        dtypes_a = [x.get_data_type() for x in test_fork.find_child_in_any_branch('a')]
+        self.assertEqual(dtypes_a[0], StringDataType())
+        self.assertEqual(dtypes_a[1], FloatDataType())
+        self.assertEqual(len(test_fork.find_child_in_any_branch('b')), 2)
+        dtypes_b = [x.get_data_type() for x in test_fork.find_child_in_any_branch('b')]
+        self.assertEqual(dtypes_b[0], FloatDataType())
+        self.assertEqual(dtypes_b[1], StringDataType())
+        self.assertEqual(len(test_fork.find_child_in_any_branch('c')), 1)
 
     def test_build_value_numpy(self):
         single_fork = TestNode.get_fork_node()
@@ -1117,3 +1143,81 @@ class TestComparisonsChild(TestCase):
         self.assertTrue(ldt_ssd < sdt)
         self.assertFalse(ldt_ssd < wc)
         self.assertFalse(ldt_ssd < f[-1])
+
+
+class TestComparisonsFork(TreeDataSetTestCase):
+    """
+    Test class for comparisons of forks.
+    """
+
+    def test_same_forks(self):
+        fork = self.get_schema_for_json_data_same_schema().base_fork_node
+        self.assertTrue(fork <= fork)
+        self.assertTrue(fork >= fork)
+        self.assertFalse(fork < fork)
+        self.assertFalse(fork > fork)
+
+    def _assert_subforks(self, d, fork):
+        for key, value in d.items():
+            if isinstance(value, dict):
+                subfork = self._get_schema_from_dict(value, key).base_fork_node
+                self.assertTrue(subfork <= fork)
+                self.assertTrue(subfork < fork)
+                self.assertFalse(subfork > fork)
+                self.assertFalse(subfork >= fork)
+                self.assertTrue(fork >= subfork)
+                self.assertTrue(fork > subfork)
+                self.assertFalse(fork < subfork)
+                self.assertFalse(fork <= subfork)
+                self._assert_subforks(value, fork)
+
+    def test_obvious_subforks(self):
+        fork = self.get_schema_for_json_data_same_schema().base_fork_node
+        d_data_types = DataGenerator.base_dict_json_same_schema_types()
+        self._assert_subforks(d_data_types, fork)
+
+    def test_special_subforks(self):
+        fork = self.get_schema_for_json_data_same_schema().base_fork_node
+        d = {
+            "level1-float": FloatDataType(),
+            "level1-date": DateDataType(resolution='s'),
+            "level1-array_string": ArrayDataType(FloatDataType()),
+            "level1-fork": {
+                "level2-date": StringDataType(),
+                "level2-list_float_string": ListDataType([FloatDataType()] * 10),
+            },
+            "level1-fork2": {
+                "level2-fork": {
+                    "level3-float": FloatDataType()
+                }
+            }
+        }
+        subfork = self._get_schema_from_dict(d, 'base').base_fork_node
+        self.assertTrue(subfork <= fork)
+        self.assertTrue(subfork < fork)
+        self.assertFalse(subfork > fork)
+        self.assertFalse(subfork >= fork)
+        self.assertTrue(fork >= subfork)
+        self.assertTrue(fork > subfork)
+        self.assertFalse(fork < subfork)
+        self.assertFalse(fork <= subfork)
+
+        d = {
+            "level1-fork": {
+                "level2-date": DateDataType(resolution='s'),
+            },
+            "level1-fork2": {
+                "level2-fork": {
+                    "level3-float": FloatDataType()
+                }
+            }
+        }
+        subfork = self._get_schema_from_dict(d, 'base').base_fork_node
+        self.assertTrue(subfork <= fork)
+        self.assertTrue(subfork < fork)
+        self.assertFalse(subfork > fork)
+        self.assertFalse(subfork >= fork)
+        self.assertTrue(fork >= subfork)
+        self.assertTrue(fork > subfork)
+        self.assertFalse(fork < subfork)
+        self.assertFalse(fork <= subfork)
