@@ -90,7 +90,8 @@ class TreeDataType(DataType):
         if isinstance(other, TreeDataType):
             return self.base_fork.__getattribute__(method)(other.base_fork)
 
-        return any([x.get_data_type().__getattribute__(method)(other) for x in self.base_fork.get_children()])
+        return any([x.get_data_type().__getattribute__(method.replace("t", "e"))(other)
+                    for x in self.base_fork.get_children()])
 
     def __str__(self):
         return """TreeDataType({})""".format(str(self.base_fork))
@@ -311,9 +312,34 @@ class ForkNode(Node):
 
         return res
 
+    def is_subtree(self, other, direct=False):
+        """
+        Method which determines whether an other Fork is a sub-fork of the Fork.
+        :param other: ForkNode
+        :param direct: Boolean specifying whether the other has to be a direct sub-fork, i.e. not equal
+        :return: Boolean
+        """
+        if not isinstance(other, ForkNode):
+            raise ValueError("Parameter other has to be an instance of ForkNode! '{}'".format(type(other)))
+
+        if self.get_name() == other.get_name():
+            other_children = other.get_children()
+            try:
+                res = all([other_child <= self.find_child(other_child.get_name()) for other_child in other_children])
+                if res and not direct:
+                    return True
+                elif res and direct:
+                    return not self == other
+                else:
+                    return res
+            except RuntimeError:
+                return False
+
+        return any([x.is_subtree(other) for x in self.get_children() if isinstance(x, ForkNode)])
+
     def _compare(self, other, method):
         if not isinstance(other, (ForkNode, ChildNode)):
-            warn("Cannot compare ChildNode to {}".format(type(other)), UserWarning)
+            warn("Cannot compare ForkNode to {}".format(type(other)), UserWarning)
             return False
 
         if isinstance(other, ChildNode):
@@ -323,14 +349,10 @@ class ForkNode(Node):
                 method = method.replace("l", "g")
             return other.__getattribute__(method)(self)
 
-        if self.get_name() != other.get_name():
-            return False
-
-        my_children = self.get_children()
-        try:
-            return all([x.__getattribute__(method)(other.find_child(x.get_name())) for x in my_children])
-        except RuntimeError:
-            return False
+        if 'g' in method:
+            return self.is_subtree(other, 'e' not in method)
+        else:
+            return other.is_subtree(self, 'e' not in method)
 
     def __str__(self):
         """
@@ -418,7 +440,7 @@ class ChildNode(Node):
 
         if isinstance(other, ForkNode) and method in ('__le__', '__lt__'):
             found_children = other.find_child_in_any_branch(self.get_name())
-            return any([self.__getattribute__(method)(x) for x in found_children])
+            return any([self.__getattribute__(method.replace("t", "e"))(x) for x in found_children])
         elif isinstance(other, ForkNode) and method not in ('__le__', '__lt__'):
             return False
 

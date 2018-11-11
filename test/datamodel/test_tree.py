@@ -1,6 +1,7 @@
 from unittest import TestCase
 from datetime import datetime
 import numpy as np
+from copy import copy
 
 from src.datamodel.tree import ChildNode, ForkNode, TreeSchema, TreeDataType
 from src.datamodel.datatypes import StringDataType, FloatDataType, DateDataType, DataType, ArrayDataType, ListDataType
@@ -640,10 +641,15 @@ class TestComparisonsChild(TestCase):
                             ListDataType(element_data_types=[StringDataType(), StringDataType(), DateDataType()]))
         wc = ChildNode('foo2', StringDataType())
 
-        return dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc
+        f_sdt = copy(sdt).set_name('sdt')
+        f_fdt = copy(fdt).set_name('fdt')
+        f_ddt_s = copy(ddt_s).set_name('ddt_s')
+        f = ForkNode(name='foo_fork', children=[f_sdt, f_fdt, f_ddt_s])
+
+        return dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc, f_sdt, f_fdt, f_ddt_s, f
 
     def test_comparisons_data_type(self):
-        dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc = self.get_data_types()
+        dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc, *f = self.get_data_types()
         self.assertTrue(dt <= dt)
         self.assertFalse(fdt <= dt)
         self.assertFalse(ddt_d <= dt)
@@ -654,6 +660,7 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ldt_ssd <= dt)
         self.assertFalse(sdt <= dt)
         self.assertFalse(wc <= dt)
+        self.assertFalse(f[-1] <= dt)
 
         self.assertFalse(dt > dt)
         self.assertFalse(fdt > dt)
@@ -665,6 +672,7 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ldt_ssd > dt)
         self.assertTrue(sdt > dt)
         self.assertFalse(wc > dt)
+        self.assertFalse(f[-1] > dt)
 
         self.assertTrue(dt >= dt)
         self.assertFalse(dt >= fdt)
@@ -676,6 +684,7 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(dt >= ldt_ssd)
         self.assertFalse(dt >= sdt)
         self.assertFalse(dt >= wc)
+        self.assertFalse(dt >= f[-1])
 
         self.assertFalse(dt < dt)
         self.assertFalse(dt < fdt)
@@ -687,9 +696,10 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(dt < ldt_ssd)
         self.assertTrue(dt < sdt)
         self.assertFalse(dt < wc)
+        self.assertFalse(dt < f[-1])
 
     def test_comparisons_string(self):
-        dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc = self.get_data_types()
+        dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc, *f = self.get_data_types()
 
         self.assertTrue(dt <= sdt)
         self.assertTrue(fdt <= sdt)
@@ -701,6 +711,7 @@ class TestComparisonsChild(TestCase):
         self.assertTrue(ldt_ssd <= sdt)
         self.assertTrue(sdt <= sdt)
         self.assertFalse(wc <= sdt)
+        self.assertFalse(f[-1] <= sdt)
 
         self.assertFalse(dt > sdt)
         self.assertFalse(fdt > sdt)
@@ -712,6 +723,8 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(ldt_ssd > sdt)
         self.assertFalse(sdt > sdt)
         self.assertFalse(wc > sdt)
+        self.assertFalse(f[-1] > sdt)
+        self.assertTrue(f[-1] > f[0])
 
         self.assertTrue(sdt >= dt)
         self.assertTrue(sdt >= fdt)
@@ -723,6 +736,8 @@ class TestComparisonsChild(TestCase):
         self.assertTrue(sdt >= ldt_ssd)
         self.assertTrue(sdt >= sdt)
         self.assertFalse(sdt <= wc)
+        self.assertFalse(sdt <= f[-1])
+        self.assertTrue(f[0] <= f[-1])
 
         self.assertFalse(sdt < dt)
         self.assertFalse(sdt < fdt)
@@ -734,6 +749,8 @@ class TestComparisonsChild(TestCase):
         self.assertFalse(sdt < ldt_ssd)
         self.assertFalse(sdt < sdt)
         self.assertFalse(sdt < wc)
+        self.assertFalse(sdt < f[-1])
+        self.assertTrue(f[0] < f[-1])
 
     def test_comparisons_float(self):
         dt, sdt, fdt, ddt_d, ddt_s, adt_f, adt_s, ldt_fsd, ldt_ssd, wc = self.get_data_types()
