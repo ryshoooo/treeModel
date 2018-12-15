@@ -14,8 +14,7 @@ class TreeDataType(DataType):
     """
     DataType for trees (python dictionaries).
 
-    :param schema: TreeSchema specifying the input tree.
-    :param nullable: Boolean specifying whether the data type can contain missing values.
+    :param nullable: Boolean specifying
     """
 
     def __init__(self, base_fork, nullable=True):
@@ -209,6 +208,7 @@ class ForkNode(Node):
 
     :param name: Name for the fork.
     :param children: List of Node objects.
+    :param level: Integer specifying the level of the fork in the tree.
     """
 
     def __init__(self, name, children, level=1):
@@ -226,7 +226,6 @@ class ForkNode(Node):
         """
         Force method which sets the name and the children leaves to the node.
         :param children: Array-like of Nodes.
-        :param name: String specifying the name of the node.
         :return: Instance of the object itself with children and name set.
         """
         if not isinstance(children, (collections.Sequence, np.ndarray)) or isinstance(children, str):
@@ -494,7 +493,7 @@ class ChildNode(Node):
 
     def __mul__(self, other):
         if not isinstance(other, (ChildNode, ForkNode)):
-            raise ValueError("Cannot perform intersection on object of type '{}'!".format(tyoe(other)))
+            raise ValueError("Cannot perform intersection on object of type '{}'!".format(type(other)))
 
         if isinstance(other, ChildNode):
             if self <= other:
@@ -543,7 +542,6 @@ class TreeSchema(object):
     def _traverse(self, arr_keys):
         """
         Helper method which traverses through the tree.
-        :param fork_node: ForkNode in which we currently are.
         :param arr_keys: List of strings representing the keys in order to traverse through.
         :return: Node
         """

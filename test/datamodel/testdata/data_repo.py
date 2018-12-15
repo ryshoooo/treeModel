@@ -4,8 +4,8 @@ This module serves as a data repository for tests.
 
 import numpy as np
 
-from src.datamodel.datatypes import StringDataType, FloatDataType, ArrayDataType, ListDataType
-from src.datamodel.tree import ChildNode, ForkNode, TreeDataType, TreeSchema
+from treemodel.datamodel.datatypes import StringDataType, FloatDataType, ArrayDataType, ListDataType
+from treemodel.datamodel.tree import ChildNode, ForkNode, TreeDataType, TreeSchema
 
 
 class DataGenerator(object):

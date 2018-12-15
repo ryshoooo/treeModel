@@ -2,7 +2,7 @@ from unittest import TestCase
 import numpy as np
 from datetime import datetime
 
-from src.datamodel.datatypes import DataType, StringDataType, FloatDataType, DateDataType, ArrayDataType, ListDataType
+from treemodel.datamodel.datatypes import DataType, StringDataType, FloatDataType, DateDataType, ArrayDataType, ListDataType
 
 
 class TestDataType(TestCase):

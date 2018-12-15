@@ -3,8 +3,8 @@ from datetime import datetime
 import numpy as np
 from copy import copy
 
-from src.datamodel.tree import ChildNode, ForkNode, TreeSchema, TreeDataType
-from src.datamodel.datatypes import StringDataType, FloatDataType, DateDataType, DataType, ArrayDataType, ListDataType
+from treemodel.datamodel.tree import ChildNode, ForkNode, TreeSchema, TreeDataType
+from treemodel.datamodel.datatypes import StringDataType, FloatDataType, DateDataType, DataType, ArrayDataType, ListDataType
 from test.datamodel.test_base import TreeDataSetTestCase
 from test.datamodel.testdata.data_repo import DataGenerator
 

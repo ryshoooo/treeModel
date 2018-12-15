@@ -5,9 +5,9 @@ import json
 
 import test.datamodel.testdata as td
 from test.datamodel.testdata.data_repo import DataGenerator
-from src.datamodel.base import TreeRow, TreeDataSet
-from src.datamodel.datatypes import DateDataType, StringDataType, FloatDataType, ListDataType, ArrayDataType
-from src.datamodel.tree import ChildNode, TreeSchema, ForkNode, TreeDataType
+from treemodel.datamodel.base import TreeRow, TreeDataSet
+from treemodel.datamodel.datatypes import DateDataType, StringDataType, FloatDataType, ListDataType, ArrayDataType
+from treemodel.datamodel.tree import ChildNode, TreeSchema, ForkNode, TreeDataType
 
 
 class TestTreeRow(TestCase):
