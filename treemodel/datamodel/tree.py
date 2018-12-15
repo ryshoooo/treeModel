@@ -291,11 +291,12 @@ class ForkNode(Node):
                 "Impossible error achieved! More than 1 child found with the same "
                 "name '{}' in Node '{}'".format(name, self.name))
 
-    def find_child_in_any_branch(self, name, as_fork=False):
+    def find_child_in_any_branch(self, name, as_fork=False, as_copy=True):
         """
         Find specific child by name in all nodes of the fork.
         :param name: String
         :param as_fork: Boolean specifying whether the return value should be fork or not.
+        :param as_copy: Boolean specifying whether the returned nodes should be a copy or direct instances.
         :return: List of Nodes
         """
         if not isinstance(name, str):
@@ -304,10 +305,13 @@ class ForkNode(Node):
         res = []
         for child in self.get_children():
             if child.get_name() == name:
-                res.append(deepcopy(child))
+                if as_copy:
+                    res.append(deepcopy(child))
+                else:
+                    res.append(child)
 
             if isinstance(child, ForkNode):
-                found_children = child.find_child_in_any_branch(name, as_fork)
+                found_children = child.find_child_in_any_branch(name, as_fork, as_copy)
 
                 if as_fork and found_children is not None:
                     found_children = [found_children]
@@ -506,18 +510,70 @@ class ChildNode(Node):
         if self.get_name() == other.get_name():
             return None
 
-        found_children = other.find_child_in_any_branch(self.get_name(), as_fork=False)
+        found_children = other.find_child_in_any_branch(self.get_name(), as_fork=False, as_copy=False)
 
         if not found_children:
             return None
         elif len(found_children) == 1:
             if isinstance(found_children[0], ChildNode):
-                return other.find_child_in_any_branch(self.get_name(), as_fork=True)
+                found_child = found_children[0]
+                if self <= found_child:
+                    return other.find_child_in_any_branch(self.get_name(), as_fork=True)
+                elif self >= found_child:
+                    found_child.set_data_type(self.get_data_type())
+                    return other.find_child_in_any_branch(self.get_name(), as_fork=True)
+                else:
+                    return None
             else:
                 return None
         elif len(found_children) > 1:
             raise RuntimeError(
                 "Cannot perform intersection where there are multiple children of the same name: '{}'".format(
+                    self.get_name()))
+
+    def __add__(self, other, level=1):
+        if not isinstance(other, (ChildNode, ForkNode)):
+            raise ValueError("Cannot perform intersection on object of type '{}'!".format(type(other)))
+
+        if isinstance(other, ChildNode):
+            if self <= other:
+                return deepcopy(other)
+            elif self >= other:
+                return deepcopy(self)
+            elif self.get_name() == other.get_name():
+                raise ValueError(
+                    "Cannot perform union on {} and {} type".format(self.get_data_type(), other.get_data_type()))
+            else:
+                return ForkNode(name="base_{}_{}".format(self.get_name(), other.get_name()),
+                                children=[deepcopy(self), deepcopy(other)], level=level)
+
+        if self.get_name() == other.get_name():
+            raise ValueError(
+                "Cannot perform union on {} and {} type.".format(self.get_data_type(), other.get_data_type()))
+
+        found_children = other.find_child_in_any_branch(self.get_name(), as_fork=False, as_copy=False)
+
+        if not found_children:
+            o_name, o_children = other.get_name(), deepcopy(other.get_children())
+            return ForkNode(name=o_name, children=o_children + [deepcopy(self)], level=other.level)
+        if len(found_children) == 1:
+            found_child = found_children[0]
+            if isinstance(found_child, ForkNode):
+                raise ValueError(
+                    "Cannot perform union on {} and {} type.".format(self.get_data_type(), found_child.get_data_type()))
+            else:
+                if self <= found_child:
+                    return other.find_child_in_any_branch(self.get_name(), as_fork=True)
+                elif self >= found_child:
+                    found_child.set_data_type(self.get_data_type())
+                    return other.find_child_in_any_branch(self.get_name(), as_fork=True)
+                else:
+                    raise ValueError(
+                        "Cannot perform union on {} and {} type.".format(self.get_data_type(),
+                                                                         found_child.get_data_type()))
+        elif len(found_children) > 1:
+            raise RuntimeError(
+                "Cannot perform union where there are multiple children of the same name: '{}'".format(
                     self.get_name()))
 
 

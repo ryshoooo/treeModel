@@ -140,6 +140,9 @@ class TestChildNode(TestCase):
         res = c1 * f1
         expected_res = ForkNode('f1', [ForkNode('f2', [ChildNode('a', FloatDataType())])])
         self.assertEqual(res, expected_res)
+        res = c2 * f1
+        expected_res = ForkNode('f1', [ForkNode('f2', [ChildNode('a', StringDataType())])])
+        self.assertEqual(res, expected_res)
 
         f1 = ForkNode(
             'f1',
