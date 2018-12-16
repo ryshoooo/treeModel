@@ -23,7 +23,7 @@ command in Python.
 #### Installation via distributed source:
 
 ``TODO: NOT IN PLACE YET (probably only when the first 
-official release is ready)``
+official early alpha release is ready)``
 
 ### How to use treeModel library
 ``TODO: Official documentation will be posted when early
