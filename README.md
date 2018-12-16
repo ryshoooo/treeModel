@@ -14,7 +14,7 @@ from tree branches and utilizing the co-dependency information.
 
 1. clone this repository to your desired folder
 2. type and run `cd treeModel`
-3. run and run `pip install .`
+3. type and run `pip install .`
 
 NB: The library is afterwards installed to your standard Python
 packages and you are able to import it via `import treemodel`
