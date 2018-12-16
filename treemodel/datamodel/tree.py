@@ -684,25 +684,41 @@ class ChildNode(Node):
             return True
 
     def __mul__(self, other):
+        """
+        Perform intersection on child nodes.
+        :param other: Node (ForkNode or ChildNode)
+        :return: Node
+        """
+        # First verify that we indeed have the correct input other type
         if not isinstance(other, (ChildNode, ForkNode)):
             raise ValueError("Cannot perform intersection on object of type '{}'!".format(type(other)))
 
+        # In case of other being child node
         if isinstance(other, ChildNode):
+            # Find the higher one and return it
             if self <= other:
                 return deepcopy(other)
             elif self >= other:
                 return deepcopy(self)
-            else:
+            else:  # In case of incomparable data types, return nothing
                 return None
 
+        # Now we are in the case of having other a ForkNode. If the name of our child and the other fork are the same,
+        # we cannot intersect fork and a child node so return nothing.
         if self.get_name() == other.get_name():
             return None
 
+        # Otherwise find all the subbranches carrying the same name as our child
         found_children = other.find_child_in_any_branch(self.get_name(), as_fork=False, as_copy=False)
 
+        # If there are no found, return nothing
         if not found_children:
             return None
-        elif len(found_children) == 1:
+
+        # If there is exactly 1 match, then do the following
+        if len(found_children) == 1:
+
+            # If what we found is a child node, then find a higher one and return it with the full fork path
             if isinstance(found_children[0], ChildNode):
                 found_child = found_children[0]
                 if self <= found_child:
@@ -710,56 +726,88 @@ class ChildNode(Node):
                 elif self >= found_child:
                     found_child.set_data_type(self.get_data_type())
                     return other.find_child_in_any_branch(self.get_name(), as_fork=True)
-                else:
+                else:  # In case of incomparable data types, return nothing
                     return None
-            else:
+            else:  # Otherwise we found a fork, which means to return nothing
                 return None
-        elif len(found_children) > 1:
+
+        # Finally in case of having more than 1 subbranch found in other, raise exception
+        if len(found_children) > 1:
             raise RuntimeError(
                 "Cannot perform intersection where there are multiple children of the same name: '{}'".format(
                     self.get_name()))
 
     def __add__(self, other, level=1):
+        """
+        Perform union on child nodes.
+        :param other: Node (ChildNode or a ForkNode)
+        :param level: Int specifying the recursive level invocation
+        :return: Node
+        """
+        # First verify that we indeed have the correct input other type
         if not isinstance(other, (ChildNode, ForkNode)):
             raise ValueError("Cannot perform union on object of type '{}'!".format(type(other)))
 
+        # In case of other being child node
         if isinstance(other, ChildNode):
+
+            # Find the higher one and return it
             if self <= other:
                 return deepcopy(other)
             elif self >= other:
                 return deepcopy(self)
+
+            # In case they are incomparable but share the same name, raise exception
             elif self.get_name() == other.get_name():
                 raise ValueError(
                     "Cannot perform union on {} and {} type".format(self.get_data_type(), other.get_data_type()))
+
+            # Otherwise union them into single fork and return the fork
             else:
                 return ForkNode(name="base_{}_{}".format(self.get_name(), other.get_name()),
                                 children=[deepcopy(self), deepcopy(other)], level=level)
 
+        # Now we are in the case where other is a ForkNode. If it shares the same name as our current child node,
+        # raise exception.
         if self.get_name() == other.get_name():
             raise ValueError(
                 "Cannot perform union on {} and {} type.".format(self.get_data_type(), other.get_data_type()))
 
+        # Find all the subbranches with the same name as our child
         found_children = other.find_child_in_any_branch(self.get_name(), as_fork=False, as_copy=False)
 
+        # If there are none found, gather all the other children and return a fork node with them, including
+        # our own self child node.
         if not found_children:
             o_name, o_children = other.get_name(), deepcopy(other.get_children())
             return ForkNode(name=o_name, children=o_children + [deepcopy(self)], level=other.level)
 
+        # In case there is exactly 1 match found, then do the following
         if len(found_children) == 1:
+
+            # Get the found child first
             found_child = found_children[0]
+
+            # In case it is a fork node, raise exception
             if isinstance(found_child, ForkNode):
                 raise ValueError(
                     "Cannot perform union on {} and {} type.".format(self.get_data_type(), found_child.get_data_type()))
+
+            # Otherwise it is a child node so find the higher one and return the fork with path to the child
             else:
                 if self <= found_child:
                     return other.find_child_in_any_branch(self.get_name(), as_fork=True)
                 elif self >= found_child:
                     found_child.set_data_type(self.get_data_type())
                     return other.find_child_in_any_branch(self.get_name(), as_fork=True)
+
+                # In case they are incomparable, raise exception (union is not possible)
                 else:
                     raise ValueError(
                         "Cannot perform union on {} and {} type.".format(self.get_data_type(),
                                                                          found_child.get_data_type()))
+
+        # Otherwise in case we have found more than 1 subbranch in other, raise exception
         elif len(found_children) > 1:
             raise RuntimeError(
                 "Cannot perform union where there are multiple children of the same name: '{}'".format(
