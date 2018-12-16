@@ -12,7 +12,10 @@ from tree branches and utilizing the co-dependency information.
 
 #### Installation via cloning:
 
-1. clone this repository to your desired folder
+1. clone this repository to your desired folder by running
+`git clone https://github.com/ryshoooo/treeModel.git`.
+Alternatively you can download the repo directly from github
+and unzip its content.
 2. type and run `cd treeModel`
 3. type and run `pip install .`
 
@@ -32,3 +35,13 @@ an example jupyter notebook where some of the basic
 functionality is going to be shown.``
 
 
+### How to contribute to treeModel library
+Currently there is no setup in place and even contribution
+is a WIP. If you really wish to contribute with your own code
+to the main master branch, you can always contact the author
+and establish a working relationship before contribution
+is in place.
+
+The library follows standard GNU GPL v.3 licensing mode,
+meaning you are free to fork the library and make your own
+private or commercial use-case without the author's permission.
