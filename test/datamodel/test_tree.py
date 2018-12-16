@@ -983,16 +983,46 @@ class TestForkNode(TestCase):
         expected_res_f1_f2 = ForkNode(
             'base_A_D',
             [
-                f1,
-                f2
-            ]
+                ForkNode(
+                    'A',
+                    [
+                        ChildNode('B', StringDataType()),
+                        ChildNode('C', FloatDataType())
+                    ],
+                    2
+                ),
+                ForkNode(
+                    'D',
+                    [
+                        ChildNode('E', StringDataType()),
+                        ChildNode('F', FloatDataType())
+                    ],
+                    2
+                )
+            ],
+            1
         )
         expected_res_f2_f1 = ForkNode(
             'base_D_A',
             [
-                f2,
-                f1
-            ]
+                ForkNode(
+                    'D',
+                    [
+                        ChildNode('E', StringDataType()),
+                        ChildNode('F', FloatDataType())
+                    ],
+                    2
+                ),
+                ForkNode(
+                    'A',
+                    [
+                        ChildNode('B', StringDataType()),
+                        ChildNode('C', FloatDataType())
+                    ],
+                    2
+                )
+            ],
+            1
         )
         self.assertEqual(f1 + f2, expected_res_f1_f2)
         self.assertEqual(f1, f1_copy)
