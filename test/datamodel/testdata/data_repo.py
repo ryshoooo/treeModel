@@ -75,14 +75,14 @@ class DataGenerator(object):
             "level1-date": StringDataType(),
             "level1-array_float": ArrayDataType(FloatDataType()),
             "level1-array_string": ArrayDataType(StringDataType()),
-            "level1-list_float_string": ListDataType([FloatDataType()] * 5 + [StringDataType()] * 5),
+            "level1-list_float_string": ListDataType([FloatDataType()] * 5 + [StringDataType()] * 5, level=2),
             "level1-fork": {
                 "level2-string": StringDataType(),
                 "level2-float": FloatDataType(),
                 "level2-date": StringDataType(),
                 "level2-array_float": ArrayDataType(FloatDataType()),
                 "level2-array_string": ArrayDataType(StringDataType()),
-                "level2-list_float_string": ListDataType([FloatDataType()] * 5 + [StringDataType()] * 5),
+                "level2-list_float_string": ListDataType([FloatDataType()] * 5 + [StringDataType()] * 5, level=3),
             },
             "level1-fork2": {
                 "level2-float": FloatDataType(),
@@ -95,7 +95,8 @@ class DataGenerator(object):
                                 children=[
                                     ChildNode(name="level3-array-float", data_type=FloatDataType()),
                                     ChildNode(name="level3-array-string", data_type=StringDataType())
-                                ]
+                                ],
+                                level=5
                             )
                         )
                     ),
@@ -107,7 +108,8 @@ class DataGenerator(object):
                                     children=[
                                         ChildNode(name="level3-list-float", data_type=FloatDataType()),
                                         ChildNode(name="level3-list-string", data_type=StringDataType())
-                                    ]
+                                    ],
+                                    level=5
                                 )
                             )
                             for x in range(0, 5)] + [
@@ -117,10 +119,12 @@ class DataGenerator(object):
                                     children=[
                                         ChildNode(name="level3-list-date", data_type=StringDataType()),
                                         ChildNode(name="level3-list-string", data_type=StringDataType())
-                                    ]
+                                    ],
+                                    level=5
                                 )
                             )
-                            for x in range(5, 10)]
+                            for x in range(5, 10)],
+                        level=4
                     )
                 }
             }

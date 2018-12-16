@@ -2,7 +2,8 @@ from unittest import TestCase
 import numpy as np
 from datetime import datetime
 
-from treemodel.datamodel.datatypes import DataType, StringDataType, FloatDataType, DateDataType, ArrayDataType, ListDataType
+from treemodel.datamodel.datatypes import DataType, StringDataType, FloatDataType, DateDataType, ArrayDataType, \
+    ListDataType
 
 
 class TestDataType(TestCase):
@@ -153,16 +154,18 @@ class TestDateDataType(TestCase):
     """
 
     def test__datetime_format(self):
-        self.assertEqual(DateDataType._datetime_format("2018", "%Y"), datetime(2018, 1, 1))
-        self.assertEqual(DateDataType._datetime_format("2018-03", "%Y-%m"), datetime(2018, 3, 1))
-        self.assertEqual(DateDataType._datetime_format("2018-03-29", "%Y-%m-%d"), datetime(2018, 3, 29))
-        self.assertEqual(DateDataType._datetime_format("2018-03-29 18", "%Y-%m-%d %H"), datetime(2018, 3, 29, 18))
-        self.assertEqual(DateDataType._datetime_format("2018-03-29 18:36", "%Y-%m-%d %H:%M"),
+        self.assertEqual(DateDataType(format_string="%Y")._datetime_format("2018"), datetime(2018, 1, 1))
+        self.assertEqual(DateDataType(format_string="%Y-%m")._datetime_format("2018-03"), datetime(2018, 3, 1))
+        self.assertEqual(DateDataType(format_string="%Y-%m-%d")._datetime_format("2018-03-29"), datetime(2018, 3, 29))
+        self.assertEqual(DateDataType(format_string="%Y-%m-%d %H")._datetime_format("2018-03-29 18"),
+                         datetime(2018, 3, 29, 18))
+        self.assertEqual(DateDataType(format_string="%Y-%m-%d %H:%M")._datetime_format("2018-03-29 18:36"),
                          datetime(2018, 3, 29, 18, 36))
-        self.assertEqual(DateDataType._datetime_format("2018-03-29 18:36:59", "%Y-%m-%d %H:%M:%S"),
+        self.assertEqual(DateDataType(format_string="%Y-%m-%d %H:%M:%S")._datetime_format("2018-03-29 18:36:59"),
                          datetime(2018, 3, 29, 18, 36, 59))
-        self.assertEqual(DateDataType._datetime_format("2018-03-29 18:36:59.967344", "%Y-%m-%d %H:%M:%S.%f"),
-                         datetime(2018, 3, 29, 18, 36, 59, 967344))
+        self.assertEqual(
+            DateDataType(format_string="%Y-%m-%d %H:%M:%S.%f")._datetime_format("2018-03-29 18:36:59.967344"),
+            datetime(2018, 3, 29, 18, 36, 59, 967344))
 
     def test_is_nullable(self):
         dtp = DateDataType(nullable=False)

@@ -211,16 +211,11 @@ class DateDataType(DataType):
         self.resolution = resolution
         self.format_string = format_string
         if nullable:
-            super(DateDataType, self).__init__('<M8[{}]'.format(resolution),
-                                               lambda x: self._datetime_format(x, format_string),
-                                               '', '')
+            super(DateDataType, self).__init__('<M8[{}]'.format(resolution), self._datetime_format, '', '')
         else:
-            super(DateDataType, self).__init__('<M8[{}]'.format(resolution),
-                                               lambda x: self._datetime_format(x, format_string),
-                                               None, None)
+            super(DateDataType, self).__init__('<M8[{}]'.format(resolution), self._datetime_format, None, None)
 
-    @staticmethod
-    def _datetime_format(value, format_string):
+    def _datetime_format(self, value):
         """
         Helper method to convert input value into the python datetime format.
         :param value: String representing the timestamp
@@ -228,7 +223,7 @@ class DateDataType(DataType):
         :return: Either datetime object or empty string.
         """
         try:
-            return datetime.strptime(value, format_string)
+            return datetime.strptime(value, self.format_string)
         except ValueError:
             return ''
 
@@ -380,8 +375,7 @@ class ListDataType(DataType):
         Helper method to build input numpy dtypes for numpy structured array.
         :return: List of tuples of format (String of index, String of numpy DType)
         """
-        return [('{}'.format(x), self.element_data_types[x].get_numpy_type()) for x in
-                range(len(self.element_data_types))]
+        return [(str(_ind), _dt.get_numpy_type()) for _ind, _dt in enumerate(self.element_data_types)]
 
     def build_numpy_value(self, value):
         """
@@ -395,8 +389,8 @@ class ListDataType(DataType):
         if isinstance(value, np.ndarray) and value.dtype.type == np.void:
             value = list(value[0])
 
-        input_values = [tuple([self.element_data_types[x].build_numpy_value(value[x])
-                               for x in range(len(self.element_data_types))])]
+        built_np_vals = [_dt.build_numpy_value(value[_ind]) for _ind, _dt in enumerate(self.element_data_types)]
+        input_values = [tuple(built_np_vals)]
 
         return np.array(input_values, dtype=self.element_numpy_types)
 
@@ -409,8 +403,7 @@ class ListDataType(DataType):
         if not isinstance(value, (collections.Sequence, np.ndarray)) or isinstance(value, str):
             raise AttributeError("Incorrect format of input value!")
 
-        input_values = tuple([self.element_data_types[x].build_python_value(value[x])
-                              for x in range(len(self.element_data_types))])
+        input_values = tuple([_dt.build_python_value(value[_ind]) for _ind, _dt in enumerate(self.element_data_types)])
 
         return self.get_python_type()(input_values)
 

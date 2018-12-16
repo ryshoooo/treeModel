@@ -181,21 +181,21 @@ class TreeDataSetTestCase(TestCase):
             self.generate_json_data_same_schema(test_data_path)
             return self.load_json_file(test_data_path)
 
-    def _get_schema_from_dict(self, d, key):
+    def _get_schema_from_dict(self, d, key, level):
         sorted_children_names = sorted(d.keys())
         children = []
         for name in sorted_children_names:
             if isinstance(d[name], dict):
-                children.append(self._get_schema_from_dict(d[name], name).base_fork_node)
+                children.append(self._get_schema_from_dict(d[name], name, level + 1).base_fork_node)
             else:
                 children.append(ChildNode(name=name, data_type=d[name]))
 
-        return TreeSchema(base_fork_node=ForkNode(name=key, children=children))
+        return TreeSchema(base_fork_node=ForkNode(name=key, children=children, level=level))
 
     def get_schema_for_json_data_same_schema(self):
         d_data_types = DataGenerator.base_dict_json_same_schema_types()
 
-        return self._get_schema_from_dict(d_data_types, "base")
+        return self._get_schema_from_dict(d_data_types, "base", level=1)
 
     def _assert_arrays(self, arr1, arr2):
         if isinstance(arr1, (list, tuple)) and isinstance(arr2, (list, tuple)):

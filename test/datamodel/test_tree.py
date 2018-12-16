@@ -4,7 +4,8 @@ import numpy as np
 from copy import copy
 
 from treemodel.datamodel.tree import ChildNode, ForkNode, TreeSchema, TreeDataType
-from treemodel.datamodel.datatypes import StringDataType, FloatDataType, DateDataType, DataType, ArrayDataType, ListDataType
+from treemodel.datamodel.datatypes import StringDataType, FloatDataType, DateDataType, DataType, ArrayDataType, \
+    ListDataType
 from test.datamodel.test_base import TreeDataSetTestCase
 from test.datamodel.testdata.data_repo import DataGenerator
 
@@ -120,8 +121,16 @@ class TestChildNode(TestCase):
 
     def test_mul(self):
         c1 = ChildNode('a', FloatDataType())
+        c1_copy = copy(c1)
         c2 = ChildNode('a', StringDataType())
+        c2_copy = copy(c2)
         res = c1 * c2
+        self.assertEqual(res, c2)
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(c2, c2_copy)
+        res = c2 * c1
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(c2, c2_copy)
         self.assertEqual(res, c2)
 
         f1 = ForkNode(
@@ -137,12 +146,25 @@ class TestChildNode(TestCase):
                 )
             ]
         )
+        f1_copy = copy(f1)
         res = c1 * f1
         expected_res = ForkNode('f1', [ForkNode('f2', [ChildNode('a', FloatDataType())])])
         self.assertEqual(res, expected_res)
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(f1, f1_copy)
+        res = f1 * c1
+        self.assertEqual(res, expected_res)
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(f1, f1_copy)
         res = c2 * f1
         expected_res = ForkNode('f1', [ForkNode('f2', [ChildNode('a', StringDataType())])])
         self.assertEqual(res, expected_res)
+        self.assertEqual(c2, c2_copy)
+        self.assertEqual(f1, f1_copy)
+        res = f1 * c2
+        self.assertEqual(res, expected_res)
+        self.assertEqual(c2, c2_copy)
+        self.assertEqual(f1, f1_copy)
 
         f1 = ForkNode(
             'f1',
@@ -157,11 +179,26 @@ class TestChildNode(TestCase):
                 )
             ]
         )
+        f1_copy = copy(f1)
+
         with self.assertRaises(RuntimeError):
             c1 * f1
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(f1, f1_copy)
+
+        with self.assertRaises(RuntimeError):
+            f1 * c1
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(f1, f1_copy)
 
         d1 = ChildNode('d', FloatDataType())
+        d1_copy = copy(d1)
         self.assertEqual(c1 * d1, None)
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(d1, d1_copy)
+        self.assertEqual(d1 * c1, None)
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(d1, d1_copy)
 
         f1 = ForkNode(
             'f1',
@@ -176,7 +213,13 @@ class TestChildNode(TestCase):
                 )
             ]
         )
+        f1_copy = copy(f1)
         self.assertEqual(c1 * f1, None)
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f1 * c1, None)
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(f1, f1_copy)
 
         f1 = ForkNode(
             'a',
@@ -191,7 +234,13 @@ class TestChildNode(TestCase):
                 )
             ]
         )
+        f1_copy = copy(f1)
         self.assertEqual(c1 * f1, None)
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f1 * c1, None)
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(f1, f1_copy)
 
         f1 = ForkNode(
             'f1',
@@ -206,7 +255,192 @@ class TestChildNode(TestCase):
                 )
             ]
         )
+        f1_copy = copy(f1)
         self.assertEqual(c1 * f1, None)
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f1 * c1, None)
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(f1, f1_copy)
+
+    def test_add(self):
+        c1 = ChildNode('a', FloatDataType())
+        c1_copy = copy(c1)
+        c2 = ChildNode('a', StringDataType())
+        c2_copy = copy(c2)
+        res = c1 + c2
+        self.assertEqual(res, c2)
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(c2, c2_copy)
+        res = c2 + c1
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(c2, c2_copy)
+        self.assertEqual(res, c2)
+
+        f1 = ForkNode(
+            'f1',
+            [
+                ChildNode('b', StringDataType()),
+                ForkNode(
+                    'f2',
+                    [
+                        ChildNode('a', FloatDataType()),
+                        ChildNode('b', FloatDataType())
+                    ]
+                )
+            ]
+        )
+        f1_copy = copy(f1)
+        res = c1 + f1
+        self.assertEqual(res, f1)
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(f1, f1_copy)
+        res = f1 + c1
+        self.assertEqual(res, f1)
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(f1, f1_copy)
+        res = c2 + f1
+        expected_res = ForkNode(
+            'f1',
+            [
+                ChildNode('b', StringDataType()),
+                ForkNode(
+                    'f2',
+                    [
+                        ChildNode('a', StringDataType()),
+                        ChildNode('b', FloatDataType())
+                    ]
+                )
+            ]
+        )
+        self.assertEqual(res, expected_res)
+        self.assertEqual(c2, c2_copy)
+        self.assertEqual(f1, f1_copy)
+        res = f1 + c2
+        self.assertEqual(res, expected_res)
+        self.assertEqual(c2, c2_copy)
+        self.assertEqual(f1, f1_copy)
+
+        f1 = ForkNode(
+            'f1',
+            [
+                ChildNode('a', StringDataType()),
+                ForkNode(
+                    'f2',
+                    [
+                        ChildNode('a', FloatDataType()),
+                        ChildNode('b', FloatDataType())
+                    ]
+                )
+            ]
+        )
+        f1_copy = copy(f1)
+
+        with self.assertRaises(RuntimeError):
+            c1 + f1
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(f1, f1_copy)
+
+        with self.assertRaises(RuntimeError):
+            f1 + c1
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(f1, f1_copy)
+
+        d1 = ChildNode('d', FloatDataType())
+        d1_copy = copy(d1)
+        expected_res = ForkNode("base_a_d", [c1_copy, d1_copy])
+        self.assertEqual(c1 + d1, expected_res)
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(d1, d1_copy)
+        expected_res = ForkNode("base_d_a", [d1_copy, c1_copy])
+        self.assertEqual(d1 + c1, expected_res)
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(d1, d1_copy)
+
+        f1 = ForkNode(
+            'f1',
+            [
+                ChildNode('b', StringDataType()),
+                ForkNode(
+                    'f2',
+                    [
+                        ChildNode('c', FloatDataType()),
+                        ChildNode('b', FloatDataType())
+                    ]
+                )
+            ]
+        )
+        f1_copy = copy(f1)
+        expected_res = ForkNode(
+            'f1',
+            [
+                ChildNode('b', StringDataType()),
+                ForkNode(
+                    'f2',
+                    [
+                        ChildNode('c', FloatDataType()),
+                        ChildNode('b', FloatDataType())
+                    ]
+                ),
+                ChildNode('a', FloatDataType())
+            ]
+        )
+        self.assertEqual(c1 + f1, expected_res)
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f1 + c1, expected_res)
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(f1, f1_copy)
+
+        f1 = ForkNode(
+            'a',
+            [
+                ChildNode('b', StringDataType()),
+                ForkNode(
+                    'f2',
+                    [
+                        ChildNode('c', FloatDataType()),
+                        ChildNode('b', FloatDataType())
+                    ]
+                )
+            ]
+        )
+        f1_copy = copy(f1)
+
+        with self.assertRaises(ValueError):
+            c1 + f1
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(f1, f1_copy)
+
+        with self.assertRaises(ValueError):
+            f1 + c1
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(f1, f1_copy)
+
+        f1 = ForkNode(
+            'f1',
+            [
+                ChildNode('b', StringDataType()),
+                ForkNode(
+                    'a',
+                    [
+                        ChildNode('c', FloatDataType()),
+                        ChildNode('b', FloatDataType())
+                    ]
+                )
+            ]
+        )
+        f1_copy = copy(f1)
+
+        with self.assertRaises(ValueError):
+            c1 + f1
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(f1, f1_copy)
+
+        with self.assertRaises(ValueError):
+            f1 + c1
+        self.assertEqual(c1, c1_copy)
+        self.assertEqual(f1, f1_copy)
 
 
 class TestForkNode(TestCase):
@@ -385,6 +619,7 @@ class TestForkNode(TestCase):
                 ChildNode('C', FloatDataType())
             ]
         )
+        f1_copy = copy(f1)
 
         f2 = ForkNode(
             'A',
@@ -394,6 +629,7 @@ class TestForkNode(TestCase):
                 ChildNode('E', DateDataType())
             ]
         )
+        f2_copy = copy(f2)
 
         expected_res = ForkNode(
             'A',
@@ -404,6 +640,12 @@ class TestForkNode(TestCase):
 
         res = f1 * f2
         self.assertEqual(res, expected_res)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+        res = f2 * f1
+        self.assertEqual(res, expected_res)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
 
         f2 = ForkNode(
             'A',
@@ -418,9 +660,17 @@ class TestForkNode(TestCase):
                 )
             ]
         )
+        f2_copy = copy(f2)
 
         with self.assertRaises(RuntimeError):
             f1 * f2
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+
+        with self.assertRaises(RuntimeError):
+            f2 * f1
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
 
         f2 = ForkNode(
             'A',
@@ -435,9 +685,17 @@ class TestForkNode(TestCase):
                 )
             ]
         )
+        f2_copy = copy(f2)
 
         with self.assertRaises(RuntimeError):
             f1 * f2
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+
+        with self.assertRaises(RuntimeError):
+            f2 * f1
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
 
         f2 = ForkNode(
             'C',
@@ -446,8 +704,13 @@ class TestForkNode(TestCase):
                 ChildNode('B', StringDataType())
             ]
         )
-
+        f2_copy = copy(f2)
         self.assertEqual(f1 * f2, None)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+        self.assertEqual(f2 * f1, None)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
 
         f2 = ForkNode(
             'D',
@@ -464,6 +727,7 @@ class TestForkNode(TestCase):
             ],
             1
         )
+        f2_copy = copy(f2)
         expected_res = ForkNode(
             'D',
             [
@@ -478,6 +742,11 @@ class TestForkNode(TestCase):
             1
         )
         self.assertEqual(f1 * f2, expected_res)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+        self.assertEqual(f2 * f1, expected_res)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
 
         f2 = ForkNode(
             'A',
@@ -494,6 +763,7 @@ class TestForkNode(TestCase):
             ],
             1
         )
+        f2_copy = copy(f2)
         expected_res = ForkNode(
             'A',
             [
@@ -509,6 +779,227 @@ class TestForkNode(TestCase):
             1
         )
         self.assertEqual(f1 * f2, expected_res)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+        self.assertEqual(f2 * f1, expected_res)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+
+        f2 = ForkNode(
+            'D',
+            [
+                ChildNode('E', StringDataType()),
+                ChildNode('F', FloatDataType())
+            ]
+        )
+        f2_copy = copy(f2)
+        self.assertEqual(f1 * f2, None)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+        self.assertEqual(f2 * f1, None)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+
+    def test_add(self):
+        f1 = ForkNode(
+            'A',
+            [
+                ChildNode('B', StringDataType()),
+                ChildNode('C', FloatDataType())
+            ]
+        )
+        f1_copy = copy(f1)
+
+        f2 = ForkNode(
+            'A',
+            [
+                ChildNode('C', StringDataType()),
+                ChildNode('D', FloatDataType()),
+                ChildNode('E', DateDataType())
+            ]
+        )
+        f2_copy = copy(f2)
+
+        expected_res = ForkNode(
+            'A',
+            [
+                ChildNode('B', StringDataType()),
+                ChildNode('C', StringDataType()),
+                ChildNode('D', FloatDataType()),
+                ChildNode('E', DateDataType())
+            ]
+        )
+
+        res = f1 + f2
+        self.assertEqual(res, expected_res)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+        res = f2 + f1
+        self.assertEqual(res, expected_res)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+
+        f2 = ForkNode(
+            'A',
+            [
+                ChildNode('B', StringDataType()),
+                ForkNode(
+                    'D',
+                    [
+                        ChildNode('B', StringDataType()),
+                        ChildNode('C', StringDataType())
+                    ]
+                )
+            ]
+        )
+        f2_copy = copy(f2)
+
+        with self.assertRaises(RuntimeError):
+            f1 + f2
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+
+        with self.assertRaises(RuntimeError):
+            f2 + f1
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+
+        f2 = ForkNode(
+            'A',
+            [
+                ChildNode('B', StringDataType()),
+                ForkNode(
+                    'D',
+                    [
+                        ChildNode('A', StringDataType()),
+                        ChildNode('C', StringDataType())
+                    ]
+                )
+            ]
+        )
+        f2_copy = copy(f2)
+
+        with self.assertRaises(RuntimeError):
+            f1 + f2
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+
+        with self.assertRaises(RuntimeError):
+            f2 + f1
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+
+        f2 = ForkNode(
+            'C',
+            [
+                ChildNode('A', StringDataType()),
+                ChildNode('B', StringDataType())
+            ]
+        )
+        f2_copy = copy(f2)
+
+        with self.assertRaises(ValueError):
+            f1 + f2
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+
+        with self.assertRaises(ValueError):
+            f2 + f1
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+
+        f2 = ForkNode(
+            'D',
+            [
+                ChildNode('C', StringDataType()),
+                ForkNode(
+                    'A',
+                    [
+                        ChildNode('B', StringDataType()),
+                        ChildNode('E', StringDataType())
+                    ],
+                    2
+                )
+            ],
+            1
+        )
+        f2_copy = copy(f2)
+        expected_res = ForkNode(
+            'D',
+            [
+                ChildNode('C', StringDataType()),
+                ForkNode(
+                    'A',
+                    [
+                        ChildNode('B', StringDataType()),
+                        ChildNode('C', StringDataType()),
+                        ChildNode('E', StringDataType())
+                    ],
+                    2
+                )
+            ],
+            1
+        )
+        self.assertEqual(f1 + f2, expected_res)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+        self.assertEqual(f2 + f1, expected_res)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+
+        f2 = ForkNode(
+            'A',
+            [
+                ChildNode('C', StringDataType()),
+                ForkNode(
+                    'D',
+                    [
+                        ChildNode('B', StringDataType()),
+                        ChildNode('E', StringDataType())
+                    ],
+                    2
+                )
+            ],
+            1
+        )
+        f2_copy = copy(f2)
+        expected_res = f2
+
+        self.assertEqual(f1 + f2, expected_res)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+        self.assertEqual(f2 + f1, expected_res)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+
+        f2 = ForkNode(
+            'D',
+            [
+                ChildNode('E', StringDataType()),
+                ChildNode('F', FloatDataType())
+            ]
+        )
+        f2_copy = copy(f2)
+        expected_res_f1_f2 = ForkNode(
+            'base_A_D',
+            [
+                f1,
+                f2
+            ]
+        )
+        expected_res_f2_f1 = ForkNode(
+            'base_D_A',
+            [
+                f2,
+                f1
+            ]
+        )
+        self.assertEqual(f1 + f2, expected_res_f1_f2)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
+        self.assertEqual(f2 + f1, expected_res_f2_f1)
+        self.assertEqual(f1, f1_copy)
+        self.assertEqual(f2, f2_copy)
 
 
 class TestTreeSchema(TestCase):
@@ -1383,7 +1874,7 @@ class TestComparisonsFork(TreeDataSetTestCase):
     def _assert_subforks(self, d, fork):
         for key, value in d.items():
             if isinstance(value, dict):
-                subfork = self._get_schema_from_dict(value, key).base_fork_node
+                subfork = self._get_schema_from_dict(value, key, 1).base_fork_node
                 self.assertTrue(subfork <= fork)
                 self.assertTrue(subfork < fork)
                 self.assertFalse(subfork > fork)
@@ -1415,7 +1906,7 @@ class TestComparisonsFork(TreeDataSetTestCase):
                 }
             }
         }
-        subfork = self._get_schema_from_dict(d, 'base').base_fork_node
+        subfork = self._get_schema_from_dict(d, 'base', 1).base_fork_node
         self.assertTrue(subfork <= fork)
         self.assertTrue(subfork < fork)
         self.assertFalse(subfork > fork)
@@ -1435,7 +1926,7 @@ class TestComparisonsFork(TreeDataSetTestCase):
                 }
             }
         }
-        subfork = self._get_schema_from_dict(d, 'base').base_fork_node
+        subfork = self._get_schema_from_dict(d, 'base', 1).base_fork_node
         self.assertTrue(subfork <= fork)
         self.assertTrue(subfork < fork)
         self.assertFalse(subfork > fork)
