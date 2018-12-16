@@ -2,6 +2,7 @@ from unittest import TestCase
 import os
 import numpy as np
 import json
+from copy import copy
 
 import test.datamodel.testdata as td
 from test.datamodel.testdata.data_repo import DataGenerator
@@ -287,3 +288,8 @@ class TestTreeDataSet(TreeDataSetTestCase):
         self.assertTrue(isinstance(tr, TreeRow))
         self.assertEqual(expected_schema, tr.schema)
         self._assert_equal_dictionaries(data, tr.row)
+
+    def test_uniformize_intersection(self):
+        tds = TreeDataSet(input_rows=self.get_json_data_same_schema())
+
+        tds_after = copy(tds).uniformize_schema('intersection')

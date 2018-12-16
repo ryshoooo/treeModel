@@ -4,6 +4,7 @@ This module contains base classes and methods for the input data model.
 import collections
 import numpy as np
 from copy import deepcopy
+from functools import reduce
 
 from .datatypes import FloatDataType, StringDataType, ArrayDataType, ListDataType
 from .tree import TreeSchema, ForkNode, ChildNode
@@ -221,3 +222,33 @@ class TreeDataSet(object):
                 return TreeRow(input_row=input_row, schema=schema).build_row(input_row=input_row, method=method)
             else:
                 raise AttributeError("Input schema parameter is not a TreeSchema object!")
+
+    def uniformize_schema(self, method='fixed', schema=None):
+        """
+        Uniformizes the schema on each row of the dataset.
+        :param method: String specifying the method of uniformization. Currently only 'intersection', 'union' and
+        'fixed' are supported. With value 'fixed' additional parameter `schema` has to be specified.
+        :param schema: TreeSchema specifying the schema to set in case of 'fixed' method on each row.
+        :return: TreeDataSet
+        """
+        if method == 'intersection':
+            schema_arr = np.apply_along_axis(lambda x: x[0].get_schema(), 0, self.data.reshape((1, -1)))
+            schema_res = np.multiply.reduce(schema_arr, 0)
+            self.data = np.apply_along_axis(lambda x: x[0].set_schema(schema_res), 0, self.data.reshape((1, -1)))
+
+            return self
+        elif method == 'union':
+            schema_arr = np.apply_along_axis(lambda x: x[0].get_schema(), 0, self.data.reshape((1, -1)))
+            schema_res = np.add.reduce(schema_arr, 0)
+            self.data = np.apply_along_axis(lambda x: x[0].set_schema(schema_res), 0, self.data.reshape((1, -1)))
+
+            return self
+        elif method == 'fixed':
+            if schema is None:
+                raise ValueError("Parameter 'schema' is missing for method 'fixed'.")
+
+            self.data = np.apply_along_axis(lambda x: x[0].set_schema(schema), 0, self.data.reshape((1, -1)))
+
+            return self
+        else:
+            raise ValueError("Unknown method '{}'!".format(method))
