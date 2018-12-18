@@ -23,7 +23,7 @@ def find_version(*file_paths):
 
 setup(
     name=package_name,
-    version=find_version("__version__.py"),
+    version=find_version("treemodel", "__init__.py"),
 
     description="Package provides functionality for modelling on tree-shaped data.",
 
@@ -37,8 +37,6 @@ setup(
     install_requires=[
         'numpy==1.15.2',
     ],
-
-
 
     packages=find_packages(exclude=['test']),
 )

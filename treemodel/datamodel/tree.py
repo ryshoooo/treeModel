@@ -14,7 +14,9 @@ class TreeDataType(DataType):
     """
     DataType for trees (python dictionaries).
 
-    :param nullable: Boolean specifying
+    :param nullable: Boolean specifying whether the input values can be nulls or not.
+
+    :type nullable: bool
     """
 
     def __init__(self, base_fork, nullable=True):
@@ -273,8 +275,11 @@ class ForkNode(Node):
 
     def find_child(self, name):
         """
-        Find specific child by name
+        Find specific child by name.
+
         :param name: String specifying the child's name
+        :type name: String
+
         :return: Node
         """
         if not isinstance(name, str):
@@ -637,6 +642,8 @@ class ChildNode(Node):
 
     :param name: Name for the child node.
     :param data_type: DataType object specifying the data type for the child.
+
+    :type name: String
     """
 
     def __init__(self, name, data_type):

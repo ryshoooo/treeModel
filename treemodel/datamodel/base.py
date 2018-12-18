@@ -4,7 +4,6 @@ This module contains base classes and methods for the input data model.
 import collections
 import numpy as np
 from copy import deepcopy
-from functools import reduce
 
 from .datatypes import FloatDataType, StringDataType, ArrayDataType, ListDataType
 from .tree import TreeSchema, ForkNode, ChildNode
@@ -12,11 +11,13 @@ from .tree import TreeSchema, ForkNode, ChildNode
 
 class TreeRow(object):
     """
-    The superclass containing the base tree input row.
+    The superclass containing the base tree input row. TEST TEST
 
     :param input_row: Dictionary with input data.
-    :param schema: Either None or TreeSchema object specifying the input_row types. In case the schema is None,
-    the schema will be automatically inferred from the input_row.
+    :type input_row: dict
+
+    :param schema: Either None or TreeSchema object specifying the input_row types. In case the schema is None, the schema will be automatically inferred from the input_row.
+    :type schema: TreeSchema
     """
 
     def __init__(self, input_row, schema=None):
@@ -33,9 +34,17 @@ class TreeRow(object):
     def build_row(self, input_row, method):
         """
         Construct TreeRow object from the input_row and specified schema.
+
         :param input_row: Dictionary with input data.
         :param method: String
-        :return: TreeRow object with the input data.
+
+        :type input_row: dict
+        :type method: str
+
+        :raises: :class:`RuntimeError`: Out of fuel
+
+        :returns: TreeRow object with the input data.
+        :rtype: TreeRow
         """
         self.row = self.build_tree(input_row, method)
         return self
