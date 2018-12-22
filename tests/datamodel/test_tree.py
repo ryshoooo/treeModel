@@ -6,8 +6,8 @@ from copy import copy
 from treemodel.datamodel.tree import ChildNode, ForkNode, TreeSchema, TreeDataType
 from treemodel.datamodel.datatypes import StringDataType, FloatDataType, DateDataType, DataType, ArrayDataType, \
     ListDataType
-from test.datamodel.test_base import TreeDataSetTestCase
-from test.datamodel.testdata.data_repo import DataGenerator
+from tests.datamodel.test_base import TreeDataSetTestCase
+from tests.datamodel.testdata.data_repo import DataGenerator
 
 
 class TestNode(TestCase):
@@ -32,7 +32,7 @@ class TestNode(TestCase):
         leaf_string = TestNode.get_single_string_leaf()
         leaf_date = TestNode.get_single_date_leaf(format_string=format_string)
         leaf_float = TestNode.get_single_float_leaf()
-        return ForkNode(name='test-fork', children=[leaf_string, leaf_date, leaf_float])
+        return ForkNode(name='tests-fork', children=[leaf_string, leaf_date, leaf_float])
 
     @staticmethod
     def get_random_fork_values():
@@ -452,7 +452,7 @@ class TestForkNode(TestCase):
         single_fork = TestNode.get_fork_node()
         self.assertTrue(single_fork.is_fork())
         self.assertEqual(len(single_fork.children), 3)
-        self.assertEqual(single_fork.name, 'test-fork')
+        self.assertEqual(single_fork.name, 'tests-fork')
         for child in single_fork.children:
             self.assertTrue('leaf' in child.name)
 
@@ -461,7 +461,7 @@ class TestForkNode(TestCase):
 
         self.assertTrue(single_fork.is_fork())
         self.assertEqual(len(single_fork.children), 1)
-        self.assertEqual(single_fork.name, 'test-fork')
+        self.assertEqual(single_fork.name, 'tests-fork')
         for child in single_fork.children:
             self.assertTrue('new' in child.name)
 
@@ -1233,7 +1233,7 @@ class TestTreeDataType(TestCase):
         try:
             dtp.build_numpy_value({'non-existent': 29.23})
         except RuntimeError as e:
-            self.assertEqual(str(e), "Unknown node of name 'non-existent' not specified in the Node 'test-fork'")
+            self.assertEqual(str(e), "Unknown node of name 'non-existent' not specified in the Node 'tests-fork'")
 
         # Case number 2
         dtp = TreeDataType(base_fork=self.get_schema_v2().base_fork_node)
@@ -1318,7 +1318,7 @@ class TestTreeDataType(TestCase):
         try:
             dtp.build_python_value({'non-existent': 29.23})
         except RuntimeError as e:
-            self.assertEqual(str(e), "Unknown node of name 'non-existent' not specified in the Node 'test-fork'")
+            self.assertEqual(str(e), "Unknown node of name 'non-existent' not specified in the Node 'tests-fork'")
 
         # Case number 2
         dtp = TreeDataType(base_fork=self.get_schema_v2().base_fork_node)

@@ -38,5 +38,5 @@ setup(
         'numpy==1.15.2',
     ],
 
-    packages=find_packages(exclude=['test']),
+    packages=find_packages(exclude=['tests', 'tests.datamodel', 'tests.datamodel.testdata']),
 )

@@ -4,8 +4,9 @@ import numpy as np
 import json
 from copy import copy
 
-import test.datamodel.testdata as td
-from test.datamodel.testdata.data_repo import DataGenerator
+import tests.datamodel.testdata as td
+from tests.datamodel.testdata.data_repo import DataGenerator
+
 from treemodel.datamodel.base import TreeRow, TreeDataSet
 from treemodel.datamodel.datatypes import DateDataType, StringDataType, FloatDataType, ListDataType, ArrayDataType
 from treemodel.datamodel.tree import ChildNode, TreeSchema, ForkNode, TreeDataType
