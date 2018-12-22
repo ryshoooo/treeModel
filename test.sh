@@ -3,7 +3,7 @@
 # This simple script runs unittests on all Python major versions 3.4 and higher
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 OLD_PYTHONPATH=$PYTHONPATH
-PYTHONPATH=OLD_PYTHONPATH:$DIR
+PYTHONPATH=$OLD_PYTHONPATH:$DIR
 export PYTHONPATH
 
 echo "=========== PYTHON 3.6 ============"
