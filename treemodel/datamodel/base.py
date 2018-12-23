@@ -1,6 +1,11 @@
 """
-This module contains base classes and methods for the input data model.
+This module contains the base functionality being used in the tree type of modelling.
+To do any kind of analysis we need to have established classes, which allow us to work with tree-structured data.
+In this module one can find the implementation of:
+    - :class:`treemodel.datamodel.base.TreeRow`: Row-like representation of the input tree data.
+    - :class:`treemodel.datamodel.base.TreeDataSet`: Collection of ``TreeRow``s forming a dataset-like structure and allowing dataset-like functionality.
 """
+
 import collections
 import numpy as np
 from copy import deepcopy
