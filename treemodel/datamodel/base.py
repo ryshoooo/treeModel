@@ -104,6 +104,8 @@ class TreeRow(object):
         :type input_row: dict
         :type method: str
 
+        :raises: :class:`RuntimeError` in case the method is unknown.
+
         :return: Converted input data into a dictionary object with the correct type specified by the schema. In case the schema specifies entries which are missing, the dictionary will contain the entries with ``NaN`` values.
         :rtype: dict
         """
@@ -296,7 +298,10 @@ class TreeDataSet(object):
         :type method: str
         :type schema: TreeSchema or None
 
+        :raises: :class:`ValueError` in case the method is unknown or in case the parameter schema is missing for method ``'fixed'``.
+
         :return: The same instance of the ``TreeDataSet`` with new schema applied to each row.
+        :rtype: TreeDataSet
         """
         if method == 'intersection':
             schema_arr = np.apply_along_axis(lambda x: x[0].get_schema(), 0, self.data.reshape((1, -1)))
