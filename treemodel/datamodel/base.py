@@ -3,7 +3,7 @@ This module contains the base functionality being used in the tree type of model
 To do any kind of analysis we need to have established classes, which allow us to work with tree-structured data.
 In this module one can find the implementation of:
     - :class:`treemodel.datamodel.base.TreeRow`: Row-like representation of the input tree data.
-    - :class:`treemodel.datamodel.base.TreeDataSet`: Collection of ``TreeRow``s forming a dataset-like structure and allowing dataset-like functionality.
+    - :class:`treemodel.datamodel.base.TreeDataSet`: Collection of :class:`treemodel.datamodel.base.TreeRow` forming a dataset-like structure and allowing dataset-like functionality.
 """
 
 import collections
@@ -16,39 +16,45 @@ from .tree import TreeSchema, ForkNode, ChildNode
 
 class TreeRow(object):
     """
-    The superclass containing the base tree input row. TEST TEST
+    The base class of a single row in the :class:`treemodel.datamodel.base.TreeDataSet`. The row contains a single tree
+    and all their input data as well.
 
-    :param input_row: Dictionary with input data.
+    :param input_row: Input data in the raw python format (usually dictionaries).
     :type input_row: dict
 
-    :param schema: Either None or TreeSchema object specifying the input_row types. In case the schema is None, the schema will be automatically inferred from the input_row.
-    :type schema: TreeSchema
+    :param schema: Either :const:`None` or :class:`treemodel.datamodel.tree.TreeSchema` object specifying the input_row types. In case the schema is None, the schema will be automatically inferred from the ``input_row`` variable.
+    :type schema: TreeSchema or None
+
+    :cvar schema: Contains the schema for the particular input data.
+    :cvar row: Contains the built input data by the input schema.
+
+    :vartype schema: TreeSchema or None
+    :vartype row: dict
     """
 
     def __init__(self, input_row, schema=None):
         """
         Initialize the TreeRow object.
         """
+        self.schema = None
+        self.row = None
+
         if schema is None:
-            self.schema = self.infer_schema(input_row)
+            self.set_schema(self.infer_schema(input_row))
         else:
             self.set_schema(schema)
-
-        self.row = None
 
     def build_row(self, input_row, method):
         """
         Construct TreeRow object from the input_row and specified schema.
 
-        :param input_row: Dictionary with input data.
-        :param method: String
+        :param input_row: Input data in a tree-like structured format (JSON, XML).
+        :param method: Specification of which implementation of the treemodel library should be used. The options are ``python`` and ``numpy``, where ``numpy`` is the default and technically more optimal choice.
 
         :type input_row: dict
         :type method: str
 
-        :raises: :class:`RuntimeError`: Out of fuel
-
-        :returns: TreeRow object with the input data.
+        :returns: The instance of the TreeRow object with attribute :attr:`row`, where the input data were transformed into a tree object and stored.
         :rtype: TreeRow
         """
         self.row = self.build_tree(input_row, method)
@@ -56,8 +62,12 @@ class TreeRow(object):
 
     def get_schema(self):
         """
-        Getter method for tree's schema.
-        :return: TreeSchema.
+        Gets the schema which is currently set.
+
+        :raises: :class:`AttributeError` in case the input schema is not set for this object.
+
+        :return: The current schema of the ``TreeRow`` instance.
+        :rtype: TreeSchema
         """
         if self.schema is None:
             raise AttributeError("The schema for the TreeRow is missing!")
@@ -66,9 +76,15 @@ class TreeRow(object):
 
     def set_schema(self, schema):
         """
-        Sets schema for the TreeRow object.
-        :param schema: TreeSchema
-        :return: Instance of the TreeRow object with updated schema.
+        Sets the input schema for the TreeRow object.
+
+        :param schema: Input schema to be set for the instance of the ``TreeRow`` class.
+        :type schema: TreeSchema
+
+        :raises: :class:`AttributeError` In case the input variable ``schema`` is not an instance of :class:`treemodel.datamodel.tree.TreeSchema`.
+
+        :return: The same instance of the TreeRow object with updated schema.
+        :rtype: TreeRow
         """
         if not isinstance(schema, TreeSchema):
             raise AttributeError("The schema for the row has to be of TreeSchema instance!")
@@ -79,10 +95,17 @@ class TreeRow(object):
 
     def build_tree(self, input_row, method):
         """
-        Method which builds tree from input dictionary.
-        :param input_row: Dictionary with the input data.
-        :param method: String
-        :return: Dictionary with the typed data.
+        This method functions as a main method to convert input data into the particular format specified by the schema
+        of the class itself.
+
+        :param input_row: Input tree-like structured data (e.g. JSON, XML).
+        :param method: Specification of which implementation of the treemodel library should be used. The options are ``python`` and ``numpy``, where ``numpy`` is the default and technically more optimal choice.
+
+        :type input_row: dict
+        :type method: str
+
+        :return: Converted input data into a dictionary object with the correct type specified by the schema. In case the schema specifies entries which are missing, the dictionary will contain the entries with ``NaN`` values.
+        :rtype: dict
         """
         if not isinstance(input_row, dict):
             input_row = dict(input_row)
@@ -167,10 +190,23 @@ class TreeRow(object):
 
     def infer_schema(self, input_dict, initial_name='base'):
         """
-        Method to infer the schema for the input_row.
-        :param input_dict: Dictionary with the input data.
-        :param initial_name: Name for the row.
-        :return: TreeSchema object specifying the schema of the row.
+        This method infers the schema based on the input tree-like structured datum. It is being invoked every time
+        the input schema for a particular data input is missing. The inference of the schema proceeds in these steps:
+            1. iterate through each item of the tree and do the following
+                a. if the item is float or can be converted to a float, set the data type to ``float``.
+                b. if the item is a list, then determine whether the inferred data types of the inner elements of the list are the same. If so, set the data type to an ``array``, otherwise set it to the ``list``.
+                c. if the item is a dictionary, create a new fork node and perform the same procedure (recursively) on the elements of the dictionary.
+                d. otherwise set the data type of the item to ``string``.
+            2. sort the order of the items alphabetically and return them as a single ``fork``.
+
+        :param input_dict: Tree-like structured input data (e.g. JSON, XML).
+        :param initial_name: Name for the initial (root) fork, which will be always established.
+
+        :type input_dict: dict
+        :type initial_name: str
+
+        :return: Inferred ``TreeSchema`` for the input tree data.
+        :rtype: TreeSchema
         """
         if not isinstance(input_dict, dict):
             input_dict = dict(input_dict)
@@ -180,13 +216,21 @@ class TreeRow(object):
 
 class TreeDataSet(object):
     """
-    Base class for dataset of trees.
+    Main class which provides dataset-like functionality for input tree data.
 
-    :param input_rows: A collection of built TreeRows or python dictionaries.
-    :param schema: Either None or TreeSchema specifying the schema for every row or collection of TreeSchemas
-        specifying the TreeSchema for each input row in order. In case the schema is None, each row will infer the
-        schema automatically.
-    :param method: String specifying the method to build each row, either 'python' or 'numpy'
+    In the current implementation the ``TreeDataSet`` provides this functionality:
+        - :meth:`uniformize_schema` finds and sets a uniformized schema for the dataset.
+
+    :param input_rows: A collection of built :class:`treemodel.datamodel.base.TreeRow` or python dictionaries containing the input tree-structured like data (e.g. JSON, XML).
+    :param schema: Can be either ``None``, or it can be a ``TreeSchema`` specifying the schema for every row, or it can also be a collection of ``TreeSchema`` specifying the schema for each input row in order. In case the schema is None, each row will infer the schema automatically.
+    :param method: Specifies the method to build each row, either ``'python'`` or ``'numpy'``.
+
+    :type input_rows: list(TreeRow) or list(dict)
+    :type schema: None or TreeSchema or list(TreeSchema)
+    :type method: str
+
+    :cvar data: Collection of the input data already in the transformed format of the :class:`treemodel.datamodel.base.TreeRow` object.
+    :vartype data: np.ndarray(TreeRow)
     """
 
     def __init__(self, input_rows, schema=None, method='numpy'):
@@ -239,11 +283,20 @@ class TreeDataSet(object):
 
     def uniformize_schema(self, method='fixed', schema=None):
         """
-        Uniformizes the schema on each row of the dataset.
-        :param method: String specifying the method of uniformization. Currently only 'intersection', 'union' and
-        'fixed' are supported. With value 'fixed' additional parameter `schema` has to be specified.
-        :param schema: TreeSchema specifying the schema to set in case of 'fixed' method on each row.
-        :return: TreeDataSet
+        Finds and sets a uniformized version of the schema for each row of the ``TreeDataSet``.
+        The uniformized version can be found via 2 methods:
+            - ``'intersection'``: Performs a schema intersection over all of the schemas of each row.
+            - ``'union'``: Performs a schema union over all of the schemas of each each row.
+            - ``'fixed'``: Sets a given schema on each row.
+        When the schema is set on each row, the input data will get correctly restructured and rebuilt by the new schema.
+
+        :param method: Specifies the method of uniformization. Currently only ``'intersection'``, ``'union'`` and ``'fixed'`` are supported. With value ``'fixed'`` additional parameter ```schema``` has to be specified.
+        :param schema: Specifies the schema to be set in case of the ``'fixed'`` method on each row.
+
+        :type method: str
+        :type schema: TreeSchema or None
+
+        :return: The same instance of the ``TreeDataSet`` with new schema applied to each row.
         """
         if method == 'intersection':
             schema_arr = np.apply_along_axis(lambda x: x[0].get_schema(), 0, self.data.reshape((1, -1)))
