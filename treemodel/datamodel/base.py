@@ -25,8 +25,8 @@ class TreeRow(object):
     :param schema: Either :const:`None` or :class:`treemodel.datamodel.tree.TreeSchema` object specifying the input_row types. In case the schema is None, the schema will be automatically inferred from the ``input_row`` variable.
     :type schema: TreeSchema or None
 
-    :cvar schema: Contains the schema for the particular input data.
-    :cvar row: Contains the built input data by the input schema.
+    :ivar schema: Contains the schema for the particular input data.
+    :ivar row: Contains the built input data by the input schema.
 
     :vartype schema: TreeSchema or None
     :vartype row: dict
@@ -231,7 +231,7 @@ class TreeDataSet(object):
     :type schema: None or TreeSchema or list(TreeSchema)
     :type method: str
 
-    :cvar data: Collection of the input data already in the transformed format of the :class:`treemodel.datamodel.base.TreeRow` object.
+    :ivar data: Collection of the input data already in the transformed format of the :class:`treemodel.datamodel.base.TreeRow` object.
     :vartype data: np.ndarray(TreeRow)
     """
 

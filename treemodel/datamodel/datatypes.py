@@ -32,10 +32,10 @@ class DataType(object):
     :type numpy_na_value: Singleton
     :type python_na_value: Singleton
 
-    :cvar numpy_dtype: Specification of the numpy type.
-    :cvar python_dtype: Specification of the python type.
-    :cvar numpy_na_value: Specification of the numpy missing value.
-    :cvar python_na_value: Specification of the python missing value.
+    :ivar numpy_dtype: Specification of the numpy type.
+    :ivar python_dtype: Specification of the python type.
+    :ivar numpy_na_value: Specification of the numpy missing value.
+    :ivar python_na_value: Specification of the python missing value.
 
     :vartype numpy_dtype: str
     :vartype python_dtype: str
@@ -201,7 +201,7 @@ class FloatDataType(DataType):
     :param nullable: ``True`` or ``False`` specifying whether the data type can contain missing values.
     :type nullable: bool
 
-    :cvar bits: Number of bits to allocate in the memory for the numpy data type.
+    :ivar bits: Number of bits to allocate in the memory for the numpy data type.
     :vartype bits: int
     """
 
@@ -256,8 +256,8 @@ class DateDataType(DataType):
     :type resolution: str
     :type format_string: str
 
-    :cvar resolution: Single value specifying the wanted numpy resolution of the date type (e.g. ``'s'``, ``'h'``, ``'M'``, etc.).
-    :cvar format_string: The input format of the timestamp. The formatting follows the standards specified in the :mod:`datetime` documentation. TODO: LINK FOR FORMATS
+    :ivar resolution: Single value specifying the wanted numpy resolution of the date type (e.g. ``'s'``, ``'h'``, ``'M'``, etc.).
+    :ivar format_string: The input format of the timestamp. The formatting follows the standards specified in the :mod:`datetime` documentation. TODO: LINK FOR FORMATS
     :vartype resolution: str
     :vartype format_string: str
     """
@@ -337,8 +337,8 @@ class ArrayDataType(DataType):
     :type element_data_type: DataType
     :type nullable: bool
 
-    :cvar element_data_type: Specifies the singular data type of the array elements.
-    :cvar element_numpy_type: Built numpy type from the :meth:`DataType.get_numpy_type` method of the ``element_data_type`` parameter.
+    :ivar element_data_type: Specifies the singular data type of the array elements.
+    :ivar element_numpy_type: Built numpy type from the :meth:`DataType.get_numpy_type` method of the ``element_data_type`` parameter.
 
     :vartype element_data_type: DataType
     :vartype element_numpy_type: :class:`np.dtype`
@@ -436,11 +436,11 @@ class ListDataType(DataType):
     :type nullable: bool
     :type level: int
 
-    :cvar element_data_types: Specifies the singular data type of the array elements.
-    :cvar element_numpy_types: Built numpy types from the :meth:`DataType.get_numpy_type` prepared as an input value for :class:`np.ndarray` ``dtype`` parameter of the structured numpy array.
-    :cvar level: Specifies the positioning of the data type in the tree schema.
+    :ivar element_data_types: Specifies the singular data type of the array elements.
+    :ivar element_numpy_types: Built numpy types from the :meth:`DataType.get_numpy_type` prepared as an input value for :class:`np.ndarray` ``dtype`` parameter of the structured numpy array.
+    :ivar level: Specifies the positioning of the data type in the tree schema.
 
-    :vartype element_data_type: list(DataType)
+    :vartype element_data_types: list(DataType)
     :vartype element_numpy_types: (str, :class:`np.dtype`)
     :vartype level: int
     """
