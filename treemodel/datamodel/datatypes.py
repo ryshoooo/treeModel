@@ -31,6 +31,16 @@ class DataType(object):
     :type python_dtype: str
     :type numpy_na_value: Singleton
     :type python_na_value: Singleton
+
+    :cvar numpy_dtype: Specification of the numpy type.
+    :cvar python_dtype: Specification of the python type.
+    :cvar numpy_na_value: Specification of the numpy missing value.
+    :cvar python_na_value: Specification of the python missing value.
+
+    :vartype numpy_dtype: str
+    :vartype python_dtype: str
+    :vartype numpy_na_value: Singleton
+    :vartype python_na_value: Singleton
     """
 
     def __init__(self, numpy_dtype, python_dtype, numpy_na_value, python_na_value):
@@ -187,9 +197,12 @@ class FloatDataType(DataType):
     DataType for float/continuous/discrete inputs.
 
     NB: The current numpy implementation of floats is using numpy data type ``'<f8'``.
-    
+
     :param nullable: ``True`` or ``False`` specifying whether the data type can contain missing values.
     :type nullable: bool
+
+    :cvar bits: Number of bits to allocate in the memory for the numpy data type.
+    :vartype bits: int
     """
 
     def __init__(self, nullable=True):
@@ -232,10 +245,21 @@ class FloatDataType(DataType):
 class DateDataType(DataType):
     """
     DataType for date/timestamp inputs.
+    The expected input data are to be strings, the conversion from string to the datetime types happens within
+    the implementation of this class.
 
-    :param nullable: Boolean specifying whether the data type can contain missing values.
-    :param resolution: String specifying the wanted numpy resolution of the date type.
-    :param format_string: String Timestamp format.
+    :param nullable: ``True`` or ``False`` specifying whether the data type can contain missing values.
+    :param resolution: Single value specifying the wanted numpy resolution of the date type (e.g. ``'s'``, ``'h'``, ``'M'``, etc.).
+    :param format_string: The input format of the timestamp. The formatting follows the standards specified in the :mod:`datetime` documentation. TODO: LINK FOR FORMATS
+
+    :type nullable: bool
+    :type resolution: str
+    :type format_string: str
+
+    :cvar resolution: Single value specifying the wanted numpy resolution of the date type (e.g. ``'s'``, ``'h'``, ``'M'``, etc.).
+    :cvar format_string: The input format of the timestamp. The formatting follows the standards specified in the :mod:`datetime` documentation. TODO: LINK FOR FORMATS
+    :vartype resolution: str
+    :vartype format_string: str
     """
 
     def __init__(self, nullable=True, resolution='s', format_string="%Y-%m-%d %H:%M:%S.%f"):
@@ -263,9 +287,15 @@ class DateDataType(DataType):
 
     def build_numpy_value(self, value):
         """
-        Method which converts the input value into the numpy type.
+        Overrides the :meth:`DataType.build_numpy_value` method from the super class. It is necessary to override the
+        base method, since currently numpy datetime64 module contains different datetime formatting as datetime module.
+        For formatting unification, only ``datetime`` implementation is being used, thus has to be enforced in this
+        method as well.
+
         :param value: Value to be converted.
-        :return: Converted value of the specific data type.
+        :type value: str
+        :return: Converted datetime value from the input value.
+        :rtype: :class:`np.datetime64`
         """
         return self.get_numpy_type().type(self.build_python_value(value)).astype(self.get_numpy_type())
 
@@ -301,8 +331,17 @@ class ArrayDataType(DataType):
     """
     DataType for arrays (lists of single type).
 
-    :param element_data_type: DataType specifying the data type of the array elements.
-    :param nullable: Boolean specifying whether the data type can contain missing values.
+    :param element_data_type: Specifies the singular data type of the array elements.
+    :param nullable: ``True`` or ``False`` specifying whether the data type can contain missing values.
+
+    :type element_data_type: DataType
+    :type nullable: bool
+
+    :cvar element_data_type: Specifies the singular data type of the array elements.
+    :cvar element_numpy_type: Built numpy type from the :meth:`DataType.get_numpy_type` method of the ``element_data_type`` parameter.
+
+    :vartype element_data_type: DataType
+    :vartype element_numpy_type: :class:`np.dtype`
     """
 
     def __init__(self, element_data_type, nullable=True):
@@ -323,9 +362,14 @@ class ArrayDataType(DataType):
 
     def build_numpy_value(self, value):
         """
-        Method which converts the input value into the numpy type.
+        This method applies the built numpy type in attribute ``element_numpy_type`` to each value in the input list.
+        Finally converts the whole list into a numpy array.
+
         :param value: Value to be converted.
+        :type value: :class:`np.ndarray` or list
+
         :return: Converted value of the specific data type.
+        :rtype: :class:`np.ndarray`
         """
         if not isinstance(value, (collections.Sequence, np.ndarray)) or isinstance(value, str):
             raise AttributeError("Incorrect format of input value!")
@@ -335,9 +379,14 @@ class ArrayDataType(DataType):
 
     def build_python_value(self, value):
         """
-        Method which converts the input value into the python type value.
+        Converts each element of the input list to the specified python type of the ``element_data_type``.
+        Finally returns as a python list of converted values.
+
         :param value: Value to be converted.
+        :type value: list(any)
+
         :return: Converted value of the specific data type.
+        :rtype: list(:meth:`DataType.get_python_type`)
         """
         if not isinstance(value, (collections.Sequence, np.ndarray)) or isinstance(value, str):
             raise AttributeError("Incorrect format of input value!")
@@ -379,8 +428,21 @@ class ListDataType(DataType):
     """
     DataType for lists (list with elements of different data types)
 
-    :param element_data_types: List/Sequence of DataTypes
-    :param nullable: Boolean specifying whether the data type can contain missing values.
+    :param element_data_types: Specifies the data types of the list elements in the input order.
+    :param nullable: ``True`` or ``False`` specifying whether the data type can contain missing values.
+    :param level: Specifies the positioning of the data type in the tree schema from the root of the tree (starts with 1). This value is needed for the hidden string method :meth:`ListDataType.__str__`, which correctly formats the input data types based on the level information.
+
+    :type element_data_types: list(DataType)
+    :type nullable: bool
+    :type level: int
+
+    :cvar element_data_types: Specifies the singular data type of the array elements.
+    :cvar element_numpy_types: Built numpy types from the :meth:`DataType.get_numpy_type` prepared as an input value for :class:`np.ndarray` ``dtype`` parameter of the structured numpy array.
+    :cvar level: Specifies the positioning of the data type in the tree schema.
+
+    :vartype element_data_type: list(DataType)
+    :vartype element_numpy_types: (str, :class:`np.dtype`)
+    :vartype level: int
     """
 
     def __init__(self, element_data_types, nullable=True, level=1):
@@ -413,9 +475,14 @@ class ListDataType(DataType):
 
     def build_numpy_value(self, value):
         """
-        Method which converts the input value into the numpy type.
+        This method converts each input value to its corresponding numpy data type and finally converts the collection
+        into the numpy structured array.
+
         :param value: Value to be converted.
+        :type value: :class:`np.ndarray` or list
+
         :return: Converted value of the specific data type.
+        :rtype: :class:`np.ndarray`
         """
         if not isinstance(value, (collections.Sequence, np.ndarray)) or isinstance(value, str):
             raise AttributeError("Incorrect format of input value!")
@@ -430,9 +497,14 @@ class ListDataType(DataType):
 
     def build_python_value(self, value):
         """
-        Method which converts the input value into the python type value.
+        Converts each element of the input list to its corresponding python data type.
+        Finally returns as a python list of converted values.
+
         :param value: Value to be converted.
+        :type value: list(any)
+
         :return: Converted value of the specific data type.
+        :rtype: list
         """
         if not isinstance(value, (collections.Sequence, np.ndarray)) or isinstance(value, str):
             raise AttributeError("Incorrect format of input value!")
