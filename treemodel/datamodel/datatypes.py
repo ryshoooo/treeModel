@@ -140,7 +140,11 @@ class StringDataType(DataType):
     """
     DataType for string/categorical inputs.
 
-    :param nullable: Boolean specifying whether the data type can contain missing values.
+    NB: The max length for the strings is currently statically set to ``'128'`` characters only, in case ``'numpy'`` implementation
+    of the StringDataType is being used. In case of ``'python'`` implementation, all string lengths are stored.
+
+    :param nullable: ``True`` or ``False`` specifying whether the data type can contain missing values.
+    :type nullable: bool
     """
 
     def __init__(self, nullable=True):
@@ -182,19 +186,22 @@ class FloatDataType(DataType):
     """
     DataType for float/continuous/discrete inputs.
 
-    :param nullable: Boolean specifying whether the data type can contain missing values.
-    :param bits: Integer specifying the number of bits to allocate in the memory for the float.
+    NB: The current numpy implementation of floats is using numpy data type ``'<f8'``.
+    
+    :param nullable: ``True`` or ``False`` specifying whether the data type can contain missing values.
+    :type nullable: bool
     """
 
-    def __init__(self, nullable=True, bits=8):
+    def __init__(self, nullable=True):
         """
         Initialize the data type.
         """
-        self.bits = bits
+        self.bits = 8
+
         if nullable:
-            super(FloatDataType, self).__init__('<f{}'.format(bits), float, np.nan, None)
+            super(FloatDataType, self).__init__('<f{}'.format(self.bits), float, np.nan, None)
         else:
-            super(FloatDataType, self).__init__('<f{}'.format(bits), float, None, None)
+            super(FloatDataType, self).__init__('<f{}'.format(self.bits), float, None, None)
 
     def _compare(self, other, method):
         if not isinstance(other, DataType):
