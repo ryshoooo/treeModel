@@ -1,3 +1,7 @@
+"""
+This module contains implementation of standard data types used for creating and setting
+tree schemas for input tree data.
+"""
 import numpy as np
 import collections
 from datetime import datetime
@@ -11,13 +15,22 @@ from warnings import warn
 
 class DataType(object):
     """
-    Conversion between numpy and python types for the Tree input data type.
-    The upper data type for tree data.
+    Base DataType class. Contains data type necessary functionality to work in tree schemas.
+    The subclasses of the ``DataType`` including the class itself are comparable, i.e. relations ``'<='``, ``'>='`` etc.
+    are working. The meaning of comparisons is to efficiently determine subdata types and supdata types.
 
-    :param numpy_dtype: Specification of the numpy type
-    :param python_dtype: Specification of the python type
-    :param numpy_na_value: Specification of the numpy missing value
-    :param python_na_value: Specification of the python missing value
+    Each ``DataType`` class contains the logic of value conversions from the input data to the specified type.
+    Each ``DataType`` contains the conversion logic for both ``'numpy'`` and ``'python'`` methods.
+
+    :param numpy_dtype: Specification of the numpy type.
+    :param python_dtype: Specification of the python type.
+    :param numpy_na_value: Specification of the numpy missing value.
+    :param python_na_value: Specification of the python missing value.
+
+    :type numpy_dtype: str
+    :type python_dtype: str
+    :type numpy_na_value: Singleton
+    :type python_na_value: Singleton
     """
 
     def __init__(self, numpy_dtype, python_dtype, numpy_na_value, python_na_value):
@@ -31,38 +44,52 @@ class DataType(object):
 
     def is_nullable(self):
         """
-        Method returns whether the current data type is nullable.
-        :return: Boolean
+        Method returns whether the current data type is nullable, i.e. whether missing values are allowed.
+
+        :return: ``True`` or ``False`` specifying whether missing values are allowed for the data type.
+        :rtype: bool
         """
         return self.python_na_value is not None or self.numpy_na_value is not None
 
     def get_numpy_type(self):
         """
-        Method to return numpy type of the data type.
-        :return: Numpy DType
+        Builds numpy type to be used for conversion.
+
+        :return: Numpy data type which is to be applied for any input value.
+        :rtype: :class:`np.dtype`
         """
         return np.dtype(self.numpy_dtype)
 
     def get_python_type(self):
         """
-        Method to return python type of the data type.
-        :return: Type
+        Builds python type to be used for conversion.
+
+        :return: Python data type which is to be applied for any input value.
+        :rtype: type
         """
         return self.python_dtype
 
     def build_numpy_value(self, value):
         """
-        Method which converts the input value into the numpy type.
-        :param value: Value to be converted.
-        :return: Converted value of the specific data type.
+        Conversion method, which transforms input value into the numpy-typed value.
+
+        :param value: Input datum.
+        :type value: any
+
+        :return: Converted value from the input datum to the specific data type.
+        :rtype: Type from the :meth:`get_numpy_type` method.
         """
         return self.get_numpy_type().type(value).astype(self.get_numpy_type())
 
     def build_python_value(self, value):
         """
-        Method which converts the input value into the python type value.
-        :param value: Value to be converted.
-        :return: Converted value of the specific data type.
+        Conversion method, which transforms input value into the python-typed value.
+
+        :param value: Input datum.
+        :type value: any
+
+        :return: Converted value from the input datum to the specific data type.
+        :rtype: Type from the :meth:`get_python_type` method.
         """
         try:
             return self.get_python_type()(value)
