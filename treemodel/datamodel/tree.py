@@ -405,11 +405,19 @@ class ForkNode(Node):
     def is_subtree(self, other, direct=False):
         """
         Method which determines whether an other Fork is a sub-fork of the current fork node instance.
-        A fork node (self) is a ``subfork`` of an other fork node (other) if and only if
+        A fork node (other) is a ``subfork`` of an another fork node (self) if and only if other fork node appears in
+        the self fork with the exact correct levelling.
 
-        :param other: ForkNode
-        :param direct: Boolean specifying whether the other has to be a direct sub-fork, i.e. not equal
-        :return: Boolean
+        :param other: A fork which is to be determined whether is a subtree of the current fork instance.
+        :param direct: ``True`` or ``False`` specifying whether the other has to be a direct sub-fork, i.e. not equal to the current instance of the fork.
+
+        :type other: ForkNode
+        :type direct: bool
+
+        :raises: :class:`ValueError` in case parameter ``other`` is not a fork.
+
+        :return: ``True`` or ``False`` specifying whether the other fork is a subfork of the current instance.
+        :rtype: bool
         """
         if not other.is_fork():
             raise ValueError("Parameter other has to be an instance of ForkNode! '{}'".format(type(other)))
@@ -495,7 +503,7 @@ class ForkNode(Node):
 
         # Now do the same exercise on self, check whether the current root name does not appear in any subbranch.
         # If so raise an exception.
-        if len(self.find_child_in_any_branch(self.get_name(), False, True)) > 0:
+        if self.find_child_in_any_branch(self.get_name()):
             raise RuntimeError("Cannot merge 2 forks by the same name! '{}'".format(self.get_name()))
 
         # Now in case the root names are the same, begin the intersection process
@@ -557,7 +565,7 @@ class ForkNode(Node):
 
         # Now we are in the case when there is something to be merged together, i.e. found branches list is not empty.
         # That particularly means that the other fork node is `larger` than ourselves. Thus find once again all the
-        # children of the same but return them as full fork node.
+        # children of the same name but return them as full fork node.
         larger_fork = other.find_child_in_any_branch(self.get_name(), as_fork=True)
         # Then merge each other child with self and filter all the empty ones.
         larger_forks_merged_children = [x * self for x in larger_fork.get_children()]
