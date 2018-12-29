@@ -155,6 +155,9 @@ class StringDataType(DataType):
 
     :param nullable: ``True`` or ``False`` specifying whether the data type can contain missing values.
     :type nullable: bool
+
+    :ivar numpy_na_value: ``'nan'``
+    :ivar python_na_value: ``None``
     """
 
     def __init__(self, nullable=True):
@@ -203,6 +206,9 @@ class FloatDataType(DataType):
 
     :ivar bits: Number of bits to allocate in the memory for the numpy data type.
     :vartype bits: int
+
+    :ivar numpy_na_value: ``np.nan``
+    :ivar python_na_value: ``None``
     """
 
     def __init__(self, nullable=True):
@@ -260,6 +266,9 @@ class DateDataType(DataType):
     :ivar format_string: The input format of the timestamp. The formatting follows the standards specified in the :mod:`datetime` documentation. TODO: LINK FOR FORMATS
     :vartype resolution: str
     :vartype format_string: str
+
+    :ivar numpy_na_value: ``np.NaT``
+    :ivar python_na_value: ``None``
     """
 
     def __init__(self, nullable=True, resolution='s', format_string="%Y-%m-%d %H:%M:%S.%f"):
@@ -342,6 +351,9 @@ class ArrayDataType(DataType):
 
     :vartype element_data_type: DataType
     :vartype element_numpy_type: :class:`np.dtype`
+
+    :ivar numpy_na_value: empty numpy array
+    :ivar python_na_value: empty list
     """
 
     def __init__(self, element_data_type, nullable=True):
@@ -443,6 +455,9 @@ class ListDataType(DataType):
     :vartype element_data_types: list(DataType)
     :vartype element_numpy_types: (str, :class:`np.dtype`)
     :vartype level: int
+
+    :ivar numpy_na_value: empty numpy structured array
+    :ivar python_na_value: empty list
     """
 
     def __init__(self, element_data_types, nullable=True, level=1):

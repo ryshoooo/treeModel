@@ -1,3 +1,7 @@
+"""
+This module contains all the tree functionality necessary for building the base tree data rows and data sets.
+"""
+
 from .datatypes import DataType
 from copy import deepcopy
 from functools import reduce
@@ -12,11 +16,16 @@ from warnings import warn
 
 class TreeDataType(DataType):
     """
-    DataType for trees (python dictionaries).
+    DataType for trees.
 
-    :param nullable: Boolean specifying whether the input values can be nulls or not.
+    :param base_fork: A fork node, which specifies the expected tree structure in the input data.
+    :param nullable: ``True`` or ``False`` specifying whether the input values can be missing.
 
+    :type base_fork: ForkNode
     :type nullable: bool
+
+    :ivar base_fork: A fork node, which specifies the expected tree structure in the input data.
+    :vartype base_fork: ForkNode
     """
 
     def __init__(self, base_fork, nullable=True):
@@ -36,9 +45,14 @@ class TreeDataType(DataType):
 
     def build_numpy_value(self, value):
         """
-        Method which converts the input value into the numpy type.
-        :param value: Value to be converted.
+        Method which converts the input value into the numpy type. In case the underlying ``base_fork`` expects more
+        entries than given in the input value, the entry will be created with a numpy missing value attribute.
+
+        :param value: Tree-like structured input data. Must be possible to convert to a dictionary.
+        :type value: dict
+
         :return: Converted value of the specific data type.
+        :rtype: dict
         """
         value_safe = self.get_numpy_type().type(value).copy()
 
@@ -61,11 +75,17 @@ class TreeDataType(DataType):
 
     def build_python_value(self, value):
         """
-        Method which converts the input value into the python type value.
-        :param value: Value to be converted.
+        Method which converts the input value into the python type. In case the underlying ``base_fork`` expects more
+        entries than given in the input value, the entry will be created with a python missing value attribute.
+
+        :param value: Tree-like structured input data. Must be possible to convert to a dictionary.
+        :type value: dict
+
         :return: Converted value of the specific data type.
+        :rtype: dict
         """
         value_safe = self.get_python_type()(value).copy()
+
         if not isinstance(value_safe, dict):
             raise RuntimeError("Incorrect input format of the value!")
 
@@ -109,7 +129,17 @@ class TreeDataType(DataType):
 
 class Node(object):
     """
-    Main node object, can be considered as a data point or a collection of data points.
+    Main node object.
+    Contains all of the necessary functionality, which apply to both :class:`treemodel.datamodel.tree.ForkNode` and
+    :class:`treemodel.datamodel.tree.ChildNode`. Can be also considered as a data point or a collection of data points.
+
+    :ivar children: Collection of ordered Nodes. These are the direct sub nodes of the particular node instance, only possible in :class:`treemodel.datamodel.tree.ForkNode`.
+    :ivar name: The name of the node (can be considered a data point/points name as well).
+    :ivar data_type: Specifies the data type of the node.
+
+    :vartype children: list(Node)
+    :vartype name: str
+    :vartype data_type: DataType
     """
 
     def __init__(self):
@@ -120,20 +150,23 @@ class Node(object):
         self.children = None
         self.name = None
         self.data_type = None
-        self.value = None
 
     def is_child(self):
         """
-        Simple method to determine whether the node is a leaf.
-        :return: Boolean
+        Simple method to determine whether the node is a leaf node (child node).
+
+        :return: ``True`` or ``False`` based on whether the node is a child.
+        :rtype: bool
         """
         return self.children is None and self.name is not None and self.data_type is not None and not isinstance(
             self.data_type, TreeDataType)
 
     def is_fork(self):
         """
-        Simple method to determine whether the node is forking.
-        :return: Boolean
+        Simple method to determine whether the node is a fork, i.e. whether it contains more nodes.
+
+        :return: ``True`` or ``False`` based on whether the node is a fork.
+        :rtype: bool
         """
         return self.children is not None and self.name is not None and self.data_type is not None and isinstance(
             self.data_type, TreeDataType)
@@ -141,7 +174,9 @@ class Node(object):
     def get_name(self):
         """
         Get the name of the node.
-        :return: String.
+
+        :return: The name of the node.
+        :rtype: str
         """
         if self.name is None:
             raise RuntimeError("The name of the node is missing!")
@@ -150,9 +185,13 @@ class Node(object):
 
     def set_name(self, name):
         """
-        Set the name of the node.
-        :param name: String
-        :return: Node with name set.
+        Sets the name of the node.
+
+        :param name: New name for the node.
+        :type name: str
+
+        :return: The same instance of the node with updated new name.
+        :rtype: Node
         """
         if not isinstance(name, str):
             raise AttributeError("Parameter name has to be a string!")
@@ -162,8 +201,10 @@ class Node(object):
 
     def get_data_type(self):
         """
-        Get the DataType of the node.
-        :return: DataType.
+        Gets the direct instance of the DataType of the node.
+
+        :return: The direct instance of the DataType of the node.
+        :rtype: DataType
         """
         if self.data_type is None:
             raise RuntimeError("The data type is missing!")
@@ -172,9 +213,13 @@ class Node(object):
 
     def set_data_type(self, data_type):
         """
-        Set the data type of the node.
-        :param data_type: DataType object.
-        :return: Instance of self with updated data type.
+        Sets the direct instance of the DataType of the node.
+
+        :param data_type: New data type to be set.
+        :type data_type: DataType
+        
+        :return: The same instance of the node with updated new data type.
+        :rtype: Node
         """
         if not isinstance(data_type, DataType):
             raise AttributeError("Parameter data_type has to be an instance of DataType object!")
