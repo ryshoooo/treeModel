@@ -108,43 +108,39 @@ class TestFloatDataType(TestCase):
         self.assertTrue(dtp.is_nullable())
 
     def test_get_numpy_type(self):
-        dtp = FloatDataType(bits=2)
-        self.assertEqual(dtp.get_numpy_type(), np.dtype('<f2'))
-        dtp = FloatDataType(bits=4)
-        self.assertEqual(dtp.get_numpy_type(), np.dtype('<f4'))
         dtp = FloatDataType()
         self.assertEqual(dtp.get_numpy_type(), np.dtype('<f8'))
 
     def test_get_python_type(self):
-        dtp = FloatDataType(bits=2)
+        dtp = FloatDataType()
         self.assertEqual(dtp.get_python_type(), float)
-        dtp = FloatDataType(bits=4)
+        dtp = FloatDataType()
         self.assertEqual(dtp.get_python_type(), float)
         dtp = FloatDataType()
         self.assertEqual(dtp.get_python_type(), float)
 
     def test_build_numpy_value(self):
-        dtp = FloatDataType(bits=2)
+        dtp = FloatDataType()
         self.assertEqual(dtp.build_numpy_value("12"), 12)
-        dtp = FloatDataType(bits=4)
-        self.assertEqual(dtp.build_numpy_value("12.3"), np.float32(12.3))
+        dtp = FloatDataType()
+        self.assertEqual(dtp.build_numpy_value("12.3"), np.float64(12.3))
         dtp = FloatDataType()
         self.assertEqual(dtp.build_numpy_value(9.99), 9.99)
 
     def test_build_python_value(self):
-        dtp = FloatDataType(bits=2)
+        dtp = FloatDataType()
         self.assertEqual(dtp.build_python_value("12"), 12)
-        dtp = FloatDataType(bits=4)
+        dtp = FloatDataType()
         self.assertEqual(dtp.build_python_value("12.3"), float(12.3))
         dtp = FloatDataType()
         self.assertEqual(dtp.build_python_value(9.99), 9.99)
 
     def test_eq(self):
-        dtp1 = FloatDataType(bits=2)
-        dtp2 = FloatDataType(bits=2)
+        dtp1 = FloatDataType()
+        dtp2 = FloatDataType()
         self.assertEqual(dtp1, dtp2)
-        dtp1 = FloatDataType(bits=2)
-        dtp2 = FloatDataType(bits=3)
+        dtp1 = FloatDataType()
+        dtp2 = FloatDataType()
         self.assertEqual(dtp1, dtp2)
 
 

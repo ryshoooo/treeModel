@@ -1,3 +1,7 @@
+"""
+This module contains all the tree functionality necessary for building the base tree data rows and data sets.
+"""
+
 from .datatypes import DataType
 from copy import deepcopy
 from functools import reduce
@@ -12,11 +16,16 @@ from warnings import warn
 
 class TreeDataType(DataType):
     """
-    DataType for trees (python dictionaries).
+    DataType for trees.
 
-    :param nullable: Boolean specifying whether the input values can be nulls or not.
+    :param base_fork: A fork node, which specifies the expected tree structure in the input data.
+    :param nullable: ``True`` or ``False`` specifying whether the input values can be missing.
 
+    :type base_fork: ForkNode
     :type nullable: bool
+
+    :ivar base_fork: A fork node, which specifies the expected tree structure in the input data.
+    :vartype base_fork: ForkNode
     """
 
     def __init__(self, base_fork, nullable=True):
@@ -36,9 +45,14 @@ class TreeDataType(DataType):
 
     def build_numpy_value(self, value):
         """
-        Method which converts the input value into the numpy type.
-        :param value: Value to be converted.
+        Method which converts the input value into the numpy type. In case the underlying ``base_fork`` expects more
+        entries than given in the input value, the entry will be created with a numpy missing value attribute.
+
+        :param value: Tree-like structured input data. Must be possible to convert to a dictionary.
+        :type value: dict
+
         :return: Converted value of the specific data type.
+        :rtype: dict
         """
         value_safe = self.get_numpy_type().type(value).copy()
 
@@ -61,11 +75,17 @@ class TreeDataType(DataType):
 
     def build_python_value(self, value):
         """
-        Method which converts the input value into the python type value.
-        :param value: Value to be converted.
+        Method which converts the input value into the python type. In case the underlying ``base_fork`` expects more
+        entries than given in the input value, the entry will be created with a python missing value attribute.
+
+        :param value: Tree-like structured input data. Must be possible to convert to a dictionary.
+        :type value: dict
+
         :return: Converted value of the specific data type.
+        :rtype: dict
         """
         value_safe = self.get_python_type()(value).copy()
+
         if not isinstance(value_safe, dict):
             raise RuntimeError("Incorrect input format of the value!")
 
@@ -109,7 +129,22 @@ class TreeDataType(DataType):
 
 class Node(object):
     """
-    Main node object, can be considered as a data point or a collection of data points.
+    Main node object.
+    Contains all of the necessary functionality, which apply to both :class:`treemodel.datamodel.tree.ForkNode` and
+    :class:`treemodel.datamodel.tree.ChildNode`. Can be also considered as a data point or a collection of data points.
+
+    All of the subclasses of the Node class need to implement an abstract method :meth:`_compare`, which afterwards
+    allows the nodes to be comparable with standard Python comparison methods (``<=``, ``>=``, etc.). Furthermore
+    the addition and multiplication methods (``+``, ``*``) are also implemented for nodes, which in the tree language
+    mean ``union`` and ``intersection`` of nodes in the respective order.
+
+    :ivar children: Collection of ordered Nodes. These are the direct sub nodes of the particular node instance, only possible in :class:`treemodel.datamodel.tree.ForkNode`.
+    :ivar name: The name of the node (can be considered a data point/points name as well).
+    :ivar data_type: Specifies the data type of the node.
+
+    :vartype children: list(Node)
+    :vartype name: str
+    :vartype data_type: DataType
     """
 
     def __init__(self):
@@ -120,20 +155,23 @@ class Node(object):
         self.children = None
         self.name = None
         self.data_type = None
-        self.value = None
 
     def is_child(self):
         """
-        Simple method to determine whether the node is a leaf.
-        :return: Boolean
+        Simple method to determine whether the node is a leaf node (child node).
+
+        :return: ``True`` or ``False`` based on whether the node is a child.
+        :rtype: bool
         """
         return self.children is None and self.name is not None and self.data_type is not None and not isinstance(
             self.data_type, TreeDataType)
 
     def is_fork(self):
         """
-        Simple method to determine whether the node is forking.
-        :return: Boolean
+        Simple method to determine whether the node is a fork, i.e. whether it contains more nodes.
+
+        :return: ``True`` or ``False`` based on whether the node is a fork.
+        :rtype: bool
         """
         return self.children is not None and self.name is not None and self.data_type is not None and isinstance(
             self.data_type, TreeDataType)
@@ -141,7 +179,9 @@ class Node(object):
     def get_name(self):
         """
         Get the name of the node.
-        :return: String.
+
+        :return: The name of the node.
+        :rtype: str
         """
         if self.name is None:
             raise RuntimeError("The name of the node is missing!")
@@ -150,9 +190,13 @@ class Node(object):
 
     def set_name(self, name):
         """
-        Set the name of the node.
-        :param name: String
-        :return: Node with name set.
+        Sets the name of the node.
+
+        :param name: New name for the node.
+        :type name: str
+
+        :return: The same instance of the node with updated new name.
+        :rtype: Node
         """
         if not isinstance(name, str):
             raise AttributeError("Parameter name has to be a string!")
@@ -162,8 +206,10 @@ class Node(object):
 
     def get_data_type(self):
         """
-        Get the DataType of the node.
-        :return: DataType.
+        Gets the direct instance of the DataType of the node.
+
+        :return: The direct instance of the DataType of the node.
+        :rtype: DataType
         """
         if self.data_type is None:
             raise RuntimeError("The data type is missing!")
@@ -172,9 +218,13 @@ class Node(object):
 
     def set_data_type(self, data_type):
         """
-        Set the data type of the node.
-        :param data_type: DataType object.
-        :return: Instance of self with updated data type.
+        Sets the direct instance of the DataType of the node.
+
+        :param data_type: New data type to be set.
+        :type data_type: DataType
+
+        :return: The same instance of the node with updated new data type.
+        :rtype: Node
         """
         if not isinstance(data_type, DataType):
             raise AttributeError("Parameter data_type has to be an instance of DataType object!")
@@ -206,11 +256,18 @@ class Node(object):
 
 class ForkNode(Node):
     """
-    Fork node.
+    Contains the functionality and methods specific for a forking node.
 
     :param name: Name for the fork.
-    :param children: List of Node objects.
+    :param children: List of Node objects (children nodes).
     :param level: Integer specifying the level of the fork in the tree.
+
+    :type name: str
+    :type children: list(Node)
+    :type level: int
+
+    :ivar level: Integer specifying the level of the fork in the tree.
+    :vartype level: int
     """
 
     def __init__(self, name, children, level=1):
@@ -226,9 +283,13 @@ class ForkNode(Node):
 
     def set_children(self, children):
         """
-        Force method which sets the name and the children leaves to the node.
-        :param children: Array-like of Nodes.
-        :return: Instance of the object itself with children and name set.
+        Force setter method which sets the children leaves to the current forking node instance.
+
+        :param children: Array-like of Nodes, which are to be set as children.
+        :type children: list(Node)
+
+        :return: Instance of the object itself with new set of children set.
+        :rtype: ForkNode
         """
         if not isinstance(children, (collections.Sequence, np.ndarray)) or isinstance(children, str):
             raise AttributeError("Incorrect format of input children nodes!")
@@ -249,8 +310,10 @@ class ForkNode(Node):
 
     def get_children(self):
         """
-        Get the list of the children nodes.
-        :return: List of Nodes.
+        Gets the list of the children nodes of the current fork instance.
+
+        :return: List of children nodes.
+        :rtype: list(Node)
         """
         if not self.is_fork():
             raise AttributeError("Cannot get children from a leaf!")
@@ -262,8 +325,10 @@ class ForkNode(Node):
 
     def get_children_names(self):
         """
-        Get the list of children names.
-        :return: List of strings representing the children names.
+        Gets the list of children names in the children order of the current fork instance.
+
+        :return: List of the children names.
+        :rtype: list(str)
         """
         if not self.is_fork():
             raise AttributeError("Cannot get children from a leaf!")
@@ -275,12 +340,15 @@ class ForkNode(Node):
 
     def find_child(self, name):
         """
-        Find specific child by name.
+        Finds specific child by name in the current fork level only.
 
-        :param name: String specifying the child's name
+        :param name: Specifies the child's name to be found.
         :type name: String
 
-        :return: Node
+        :raises: :class:`RuntimeError` in case the wanted child is not found.
+
+        :return: Direct instance of the child with the wanted name.
+        :rtype: Node
         """
         if not isinstance(name, str):
             raise AttributeError("Input parameter 'name' has to be a string!")
@@ -298,11 +366,18 @@ class ForkNode(Node):
 
     def find_child_in_any_branch(self, name, as_fork=False, as_copy=True):
         """
-        Find specific child by name in all nodes of the fork.
-        :param name: String
-        :param as_fork: Boolean specifying whether the return value should be fork or not.
-        :param as_copy: Boolean specifying whether the returned nodes should be a copy or direct instances.
-        :return: List of Nodes
+        Finds all of the nodes bearing the wanted name in all of the nodes of the fork.
+
+        :param name: Name of the children to be found.
+        :param as_fork: ``True`` or ``False`` whether the return value should be an instance of the ``ForkNode``.
+        :param as_copy: ``True`` or ``False`` specifying whether the returned nodes should be a copy or direct instances.
+
+        :type name: str
+        :type as_fork: bool
+        :type as_copy: bool
+
+        :return: Either list of nodes carrying the wanted name, or a ForkNode with the full paths from the current fork node to the children carrying the wanted name, or None in case none children are found.
+        :rtype: list(Node) or ForkNode or None
         """
         if not isinstance(name, str):
             raise ValueError("Input parameter 'name' has to be a string")
@@ -315,7 +390,7 @@ class ForkNode(Node):
                 else:
                     res.append(child)
 
-            if isinstance(child, ForkNode):
+            if child.is_fork():
                 found_children = child.find_child_in_any_branch(name, as_fork, as_copy)
 
                 if as_fork and found_children is not None:
@@ -334,12 +409,22 @@ class ForkNode(Node):
 
     def is_subtree(self, other, direct=False):
         """
-        Method which determines whether an other Fork is a sub-fork of the Fork.
-        :param other: ForkNode
-        :param direct: Boolean specifying whether the other has to be a direct sub-fork, i.e. not equal
-        :return: Boolean
+        Method which determines whether an other Fork is a sub-fork of the current fork node instance.
+        A fork node (other) is a ``subfork`` of an another fork node (self) if and only if other fork node appears in
+        the self fork with the exact correct levelling.
+
+        :param other: A fork which is to be determined whether is a subtree of the current fork instance.
+        :param direct: ``True`` or ``False`` specifying whether the other has to be a direct sub-fork, i.e. not equal to the current instance of the fork.
+
+        :type other: ForkNode
+        :type direct: bool
+
+        :raises: :class:`ValueError` in case parameter ``other`` is not a fork.
+
+        :return: ``True`` or ``False`` specifying whether the other fork is a subfork of the current instance.
+        :rtype: bool
         """
-        if not isinstance(other, ForkNode):
+        if not other.is_fork():
             raise ValueError("Parameter other has to be an instance of ForkNode! '{}'".format(type(other)))
 
         if self.get_name() == other.get_name():
@@ -355,14 +440,14 @@ class ForkNode(Node):
             except RuntimeError:
                 return False
 
-        return any([x.is_subtree(other) for x in self.get_children() if isinstance(x, ForkNode)])
+        return any([x.is_subtree(other) for x in self.get_children() if x.is_fork()])
 
     def _compare(self, other, method):
         if not isinstance(other, (ForkNode, ChildNode)):
             warn("Cannot compare ForkNode to {}".format(type(other)), UserWarning)
             return False
 
-        if isinstance(other, ChildNode):
+        if other.is_child():
             if 'g' in method:
                 method = method.replace("g", "l")
             else:
@@ -386,7 +471,7 @@ class ForkNode(Node):
     def __eq__(self, other):
         if not isinstance(other, Node):
             raise AttributeError("Cannot compare ForkNode with '{}'".format(type(other)))
-        elif not isinstance(other, ForkNode):
+        elif not other.is_fork():
             warn("{} is a Fork while {} is a child!".format(self.get_name(), other.get_name()), UserWarning)
             return False
 
@@ -410,7 +495,7 @@ class ForkNode(Node):
             raise ValueError("Intersection is not defined for type '{}'".format(type(other)))
 
         # In case of ChildNode, call the child node implementation
-        if isinstance(other, ChildNode):
+        if other.is_child():
             return other * self
 
         # Now we are in the case where other is definitely a ForkNode. Find all the branches and children with the same
@@ -423,7 +508,7 @@ class ForkNode(Node):
 
         # Now do the same exercise on self, check whether the current root name does not appear in any subbranch.
         # If so raise an exception.
-        if len(self.find_child_in_any_branch(self.get_name(), False, True)) > 0:
+        if self.find_child_in_any_branch(self.get_name()):
             raise RuntimeError("Cannot merge 2 forks by the same name! '{}'".format(self.get_name()))
 
         # Now in case the root names are the same, begin the intersection process
@@ -485,7 +570,7 @@ class ForkNode(Node):
 
         # Now we are in the case when there is something to be merged together, i.e. found branches list is not empty.
         # That particularly means that the other fork node is `larger` than ourselves. Thus find once again all the
-        # children of the same but return them as full fork node.
+        # children of the same name but return them as full fork node.
         larger_fork = other.find_child_in_any_branch(self.get_name(), as_fork=True)
         # Then merge each other child with self and filter all the empty ones.
         larger_forks_merged_children = [x * self for x in larger_fork.get_children()]
@@ -512,7 +597,7 @@ class ForkNode(Node):
             raise ValueError("Union is not defined for type '{}'".format(type(other)))
 
         # In case of ChildNode, call the child node implementation
-        if isinstance(other, ChildNode):
+        if other.is_child():
             return other.__add__(self, self.level)
 
         # Now we are in the case where other is definitely a ForkNode. Find all the branches and children with the same
@@ -582,7 +667,7 @@ class ForkNode(Node):
 
                 # If the other child's name appears in any subbranch of a already dealt with fork node, continue to
                 # the next one
-                if [x.find_child_in_any_branch(other_child.get_name()) for x in children if isinstance(x, ForkNode)]:
+                if [x.find_child_in_any_branch(other_child.get_name()) for x in children if x.is_fork()]:
                     continue
 
                 # Otherwise append this child to the children list
@@ -616,7 +701,7 @@ class ForkNode(Node):
             # In case the other child is a ChildNode and the child node carries the same name as our fork,
             # this will result in exception, which is implemented in the ChildNode union method. Otherwise if the
             # names differ, append the other child to the children list.
-            if isinstance(other_child, ChildNode):
+            if other_child.is_child():
                 if other_child.get_name() == self.get_name():
                     children.append(other_child + self)
                 else:
@@ -638,12 +723,13 @@ class ForkNode(Node):
 
 class ChildNode(Node):
     """
-    Leaf.
+    Implementation of the leaf node, carries only information about the data type of the leaf and its name.
 
     :param name: Name for the child node.
-    :param data_type: DataType object specifying the data type for the child.
+    :param data_type: Specifying the data type for the leaf.
 
-    :type name: String
+    :type name: str
+    :type data_type: DataType
     """
 
     def __init__(self, name, data_type):
@@ -660,10 +746,10 @@ class ChildNode(Node):
             warn("Cannot compare ChildNode to {}".format(type(other)), UserWarning)
             return False
 
-        if isinstance(other, ForkNode) and method in ('__le__', '__lt__'):
+        if other.is_fork() and method in ('__le__', '__lt__'):
             found_children = other.find_child_in_any_branch(self.get_name())
             return any([self.__getattribute__(method.replace("t", "e"))(x) for x in found_children])
-        elif isinstance(other, ForkNode) and method not in ('__le__', '__lt__'):
+        elif other.is_fork() and method not in ('__le__', '__lt__'):
             return False
 
         if self.get_name() != other.get_name():
@@ -677,7 +763,7 @@ class ChildNode(Node):
     def __eq__(self, other):
         if not isinstance(other, Node):
             raise AttributeError("Cannot compare ChildNode to '{}'".format(type(other)))
-        elif not isinstance(other, ChildNode):
+        elif not other.is_child():
             warn("{} is a child, while {} is a fork".format(self.get_name(), other.get_name()), UserWarning)
             return False
 
@@ -701,7 +787,7 @@ class ChildNode(Node):
             raise ValueError("Cannot perform intersection on object of type '{}'!".format(type(other)))
 
         # In case of other being child node
-        if isinstance(other, ChildNode):
+        if other.is_child():
             # Find the higher one and return it
             if self <= other:
                 return deepcopy(other)
@@ -726,7 +812,7 @@ class ChildNode(Node):
         if len(found_children) == 1:
 
             # If what we found is a child node, then find a higher one and return it with the full fork path
-            if isinstance(found_children[0], ChildNode):
+            if found_children[0].is_child():
                 found_child = found_children[0]
                 if self <= found_child:
                     return other.find_child_in_any_branch(self.get_name(), as_fork=True)
@@ -756,7 +842,7 @@ class ChildNode(Node):
             raise ValueError("Cannot perform union on object of type '{}'!".format(type(other)))
 
         # In case of other being child node
-        if isinstance(other, ChildNode):
+        if other.is_child():
 
             # Find the higher one and return it
             if self <= other:
@@ -796,7 +882,7 @@ class ChildNode(Node):
             found_child = found_children[0]
 
             # In case it is a fork node, raise exception
-            if isinstance(found_child, ForkNode):
+            if found_child.is_fork():
                 raise ValueError(
                     "Cannot perform union on {} and {} type.".format(self.get_data_type(), found_child.get_data_type()))
 
@@ -824,17 +910,19 @@ class ChildNode(Node):
 class TreeSchema(object):
     """
     Base class for input schema for a particular dataset.
+
     NB: Not a big difference between ForkNode and TreeSchema, it is important to distinguish between them though,
     since ForkNode's functionality is more tree-like, while the schema only gives more metadata about the object.
 
-    :param base_fork_node: ForkNode containing the full tree
+    :param base_fork_node: A fork node which fully specifies the expected tree schema.
+    :type base_fork_node: ForkNode
     """
 
     def __init__(self, base_fork_node):
         """
         Initialize the TreeSchema object (basically works as a ForkNode)
         """
-        if not isinstance(base_fork_node, ForkNode):
+        if not base_fork_node.is_fork():
             raise AttributeError("Incorrect format of input base node!")
 
         self.base_fork_node = base_fork_node
@@ -851,8 +939,24 @@ class TreeSchema(object):
         """
         Method which finds the data type for the specific node. The name has to be of format
         'level1-name/level2-name/...', i.e. a slash denotes forking.
-        :param name: String
-        :return: DataType
+
+        :Example:
+
+        >>> from treemodel.datamodel.datatypes import StringDataType
+        >>> from treemodel.datamodel.tree import TreeSchema, ForkNode, ChildNode
+        >>> level2_fork = ForkNode(name='example', children=[ChildNode('child', StringDataType())], level=2)
+        >>> level1_fork = ForkNode(name='base', children=[level2_fork], level=1)
+        >>> ts = TreeSchema(base_fork_node=level1_fork)
+        >>>
+        >>> print('Tree Schema: {}'.format(ts))
+        >>> print("Data Type of 'child' leaf: {}".format(ts.find_data_type('example/child')))
+        >>> print("Data Type of 'example' node: {}".format(ts.find_data_type('example')))
+
+        :param name: Nested name of a node in the schema.
+        :type name: str
+
+        :return: The data type of the wanted node.
+        :rtype: DataType
         """
         if not isinstance(name, str):
             raise ValueError("Parameter 'name' has to be a string!")
@@ -862,11 +966,17 @@ class TreeSchema(object):
 
     def set_data_type(self, name, data_type):
         """
-        Method which sets the data type for the specific ndoe. The name has to be of format
+        Method which sets the data type for the specific node. The name has to be of format
         'level1-name/level2-name'...', i.e. a slash denotes forking.
-        :param name: String
-        :param data_type: DataType
-        :return: TreeSchema
+
+        :param name: Nested name of the wanted node.
+        :param data_type: New data type to be set for the wanted nested node.
+
+        :type name: str
+        :type data_type: DataType
+
+        :return: An instance of the current TreeSchema with the wanted node set to a new data type.
+        :rtype: TreeSchema
         """
         if not isinstance(name, str):
             raise ValueError("Parameter 'name' has to be a string!")
@@ -880,9 +990,13 @@ class TreeSchema(object):
 
     def create_dummy_nan_tree(self, method='numpy'):
         """
-        Create dummy tree with NaN values.
-        :param method: String speciyfing the build method
-        :return: Dictionary
+        Creates a dummy tree with missing values only based on the current instance's schema.
+
+        :param method: Specifies the method to build the tree of missing values, either ``'python'`` or ``'numpy'``.
+        :type method: str
+
+        :return: Tree-like structure of the instance's schema filled with missing values.
+        :rtype: dict
         """
         if method == 'numpy':
             return self.base_fork_node.get_data_type().build_numpy_value(value={})
