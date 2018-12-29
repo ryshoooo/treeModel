@@ -133,6 +133,11 @@ class Node(object):
     Contains all of the necessary functionality, which apply to both :class:`treemodel.datamodel.tree.ForkNode` and
     :class:`treemodel.datamodel.tree.ChildNode`. Can be also considered as a data point or a collection of data points.
 
+    All of the subclasses of the Node class need to implement an abstract method :meth:`_compare`, which afterwards
+    allows the nodes to be comparable with standard Python comparison methods (``<=``, ``>=``, etc.). Furthermore
+    the addition and multiplication methods (``+``, ``*``) are also implemented for nodes, which in the tree language
+    mean ``union`` and ``intersection`` of nodes in the respective order.
+
     :ivar children: Collection of ordered Nodes. These are the direct sub nodes of the particular node instance, only possible in :class:`treemodel.datamodel.tree.ForkNode`.
     :ivar name: The name of the node (can be considered a data point/points name as well).
     :ivar data_type: Specifies the data type of the node.
@@ -718,12 +723,13 @@ class ForkNode(Node):
 
 class ChildNode(Node):
     """
-    Leaf.
+    Implementation of the leaf node, carries only information about the data type of the leaf and its name.
 
     :param name: Name for the child node.
-    :param data_type: DataType object specifying the data type for the child.
+    :param data_type: Specifying the data type for the leaf.
 
-    :type name: String
+    :type name: str
+    :type data_type: DataType
     """
 
     def __init__(self, name, data_type):
@@ -904,10 +910,12 @@ class ChildNode(Node):
 class TreeSchema(object):
     """
     Base class for input schema for a particular dataset.
+
     NB: Not a big difference between ForkNode and TreeSchema, it is important to distinguish between them though,
     since ForkNode's functionality is more tree-like, while the schema only gives more metadata about the object.
 
-    :param base_fork_node: ForkNode containing the full tree
+    :param base_fork_node: A fork node which fully specifies the expected tree schema.
+    :type base_fork_node: ForkNode
     """
 
     def __init__(self, base_fork_node):
@@ -931,8 +939,24 @@ class TreeSchema(object):
         """
         Method which finds the data type for the specific node. The name has to be of format
         'level1-name/level2-name/...', i.e. a slash denotes forking.
-        :param name: String
-        :return: DataType
+
+        :Example:
+
+        >>> from treemodel.datamodel.datatypes import StringDataType
+        >>> from treemodel.datamodel.tree import TreeSchema, ForkNode, ChildNode
+        >>> level2_fork = ForkNode(name='example', children=[ChildNode('child', StringDataType())], level=2)
+        >>> level1_fork = ForkNode(name='base', children=[level2_fork], level=1)
+        >>> ts = TreeSchema(base_fork_node=level1_fork)
+        >>>
+        >>> print('Tree Schema: {}'.format(ts))
+        >>> print("Data Type of 'child' leaf: {}".format(ts.find_data_type('example/child')))
+        >>> print("Data Type of 'example' node: {}".format(ts.find_data_type('example')))
+
+        :param name: Nested name of a node in the schema.
+        :type name: str
+
+        :return: The data type of the wanted node.
+        :rtype: DataType
         """
         if not isinstance(name, str):
             raise ValueError("Parameter 'name' has to be a string!")
@@ -942,11 +966,17 @@ class TreeSchema(object):
 
     def set_data_type(self, name, data_type):
         """
-        Method which sets the data type for the specific ndoe. The name has to be of format
+        Method which sets the data type for the specific node. The name has to be of format
         'level1-name/level2-name'...', i.e. a slash denotes forking.
-        :param name: String
-        :param data_type: DataType
-        :return: TreeSchema
+
+        :param name: Nested name of the wanted node.
+        :param data_type: New data type to be set for the wanted nested node.
+
+        :type name: str
+        :type data_type: DataType
+
+        :return: An instance of the current TreeSchema with the wanted node set to a new data type.
+        :rtype: TreeSchema
         """
         if not isinstance(name, str):
             raise ValueError("Parameter 'name' has to be a string!")
@@ -960,9 +990,13 @@ class TreeSchema(object):
 
     def create_dummy_nan_tree(self, method='numpy'):
         """
-        Create dummy tree with NaN values.
-        :param method: String speciyfing the build method
-        :return: Dictionary
+        Creates a dummy tree with missing values only based on the current instance's schema.
+
+        :param method: Specifies the method to build the tree of missing values, either ``'python'`` or ``'numpy'``.
+        :type method: str
+
+        :return: Tree-like structure of the instance's schema filled with missing values.
+        :rtype: dict
         """
         if method == 'numpy':
             return self.base_fork_node.get_data_type().build_numpy_value(value={})
