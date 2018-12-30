@@ -1,3 +1,5 @@
+import treemodel
+
 # -*- coding: utf-8 -*-
 #
 # Configuration file for the Sphinx documentation builder.
@@ -19,15 +21,14 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'treeModel'
+project = 'treemodel'
 copyright = '2018, Richard Nemeth'
 author = 'Richard Nemeth'
 
 # The short X.Y version
-version = '0.0.1'
+version = treemodel.__version__
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
-
+release = treemodel.__version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -78,7 +79,6 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
 
-
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -113,7 +113,6 @@ html_static_path = ['_static']
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'treeModeldoc'
 
-
 # -- Options for LaTeX output ------------------------------------------------
 
 latex_elements = {
@@ -142,7 +141,6 @@ latex_documents = [
      'Richard Nemeth', 'manual'),
 ]
 
-
 # -- Options for manual page output ------------------------------------------
 
 # One entry per manual page. List of tuples
@@ -151,7 +149,6 @@ man_pages = [
     (master_doc, 'treemodel', 'treeModel Documentation',
      [author], 1)
 ]
-
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -163,7 +160,6 @@ texinfo_documents = [
      author, 'treeModel', 'One line description of project.',
      'Miscellaneous'),
 ]
-
 
 # -- Options for Epub output -------------------------------------------------
 
@@ -181,7 +177,6 @@ epub_title = project
 
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
-
 
 # -- Extension configuration -------------------------------------------------
 

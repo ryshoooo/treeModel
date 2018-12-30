@@ -7,7 +7,7 @@ from tree branches and utilizing the co-dependency information.
 
 ```NB: Still in early development!!```
 
-```The current supported version is 0.0.1. (super ealy alpha)```
+```The current supported version is 0.0.2 (super ealy alpha)```
 
 ## Installation
 
