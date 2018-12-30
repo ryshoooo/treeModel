@@ -503,7 +503,10 @@ class ListDataType(DataType):
             raise AttributeError("Incorrect format of input value!")
 
         if isinstance(value, np.ndarray) and value.dtype.type == np.void:
-            value = list(value[0])
+            try:
+                value = list(value[0])
+            except IndexError:
+                value = [_dt.numpy_na_value for _dt in self.element_data_types]
 
         built_np_vals = [_dt.build_numpy_value(value[_ind]) for _ind, _dt in enumerate(self.element_data_types)]
         input_values = [tuple(built_np_vals)]
@@ -524,7 +527,12 @@ class ListDataType(DataType):
         if not isinstance(value, (collections.Sequence, np.ndarray)) or isinstance(value, str):
             raise AttributeError("Incorrect format of input value!")
 
-        input_values = tuple([_dt.build_python_value(value[_ind]) for _ind, _dt in enumerate(self.element_data_types)])
+        if value == self.python_na_value:
+            input_values = tuple([_dt.build_python_value(_dt.python_na_value) for _ind, _dt in
+                                  enumerate(self.element_data_types)])
+        else:
+            input_values = tuple([_dt.build_python_value(value[_ind]) for _ind, _dt in
+                                  enumerate(self.element_data_types)])
 
         return self.get_python_type()(input_values)
 
