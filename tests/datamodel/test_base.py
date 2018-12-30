@@ -3,6 +3,7 @@ import os
 import numpy as np
 import json
 from copy import copy
+from datetime import datetime
 
 import tests.datamodel.testdata as td
 from tests.datamodel.testdata.data_repo import DataGenerator
@@ -80,6 +81,156 @@ class TestTreeRow(TestCase):
         self.assertEqual(input_row['level1-float'], output_row['level1-float'])
         self.assertEqual(input_row['level1'], output_row['level1'])
         self.assertEqual(input_row['level1-list'], list(output_row['level1-list'][0]))
+
+    def test__assert_transformation_possible(self):
+        fork1 = ForkNode('base', [ChildNode('c1', StringDataType()), ChildNode('c2', FloatDataType()),
+                                  ForkNode('f1', [ChildNode('c2', DateDataType())])])
+
+        with self.assertRaises(RuntimeError):
+            TreeRow._assert_transformation_possible(['c2'], fork1)
+        with self.assertRaises(RuntimeError):
+            TreeRow._assert_transformation_possible(['c1', 'c2'], fork1)
+        with self.assertRaises(RuntimeError):
+            TreeRow._assert_transformation_possible(['f1', 'c1', 'c2'], fork1)
+
+        TreeRow._assert_transformation_possible(['c1'], fork1)
+        TreeRow._assert_transformation_possible(['c1', 'f1'], fork1)
+
+    def test__transform_child_value(self):
+        # Case 1
+        value1 = '120.28'
+        leaf1 = ChildNode('case1', FloatDataType())
+
+        self.assertEqual(float(value1), TreeRow._transform_child_value(value1, leaf1, 'numpy'))
+        self.assertEqual(float(value1), TreeRow._transform_child_value(value1, leaf1, 'python'))
+        with self.assertRaises(ValueError):
+            TreeRow._transform_child_value(value1, leaf1, 'no')
+
+        # Case 2
+        value2 = 40
+        leaf2 = ChildNode('case2', StringDataType())
+
+        self.assertEqual(str(value2), TreeRow._transform_child_value(value2, leaf2, 'numpy'))
+        self.assertEqual(str(value2), TreeRow._transform_child_value(value2, leaf2, 'python'))
+        with self.assertRaises(ValueError):
+            TreeRow._transform_child_value(value2, leaf2, 'no')
+
+        # Case 3
+        value3 = '2018-01-04'
+        leaf3 = ChildNode('case3', DateDataType(resolution='D', format_string="%Y-%m-%d"))
+
+        self.assertEqual(np.datetime64(value3), TreeRow._transform_child_value(value3, leaf3, 'numpy'))
+        self.assertEqual(datetime.strptime(value3, "%Y-%m-%d"), TreeRow._transform_child_value(value3, leaf3, 'python'))
+        with self.assertRaises(ValueError):
+            TreeRow._transform_child_value(value3, leaf3, 'no')
+
+        # Case 4
+        value4 = None
+
+        self.assertTrue(np.isnan(TreeRow._transform_child_value(value4, leaf1, 'numpy')))
+        self.assertTrue(TreeRow._transform_child_value(value4, leaf1, 'python') is None)
+        self.assertEqual(TreeRow._transform_child_value(value4, leaf2, 'numpy'), 'nan')
+        self.assertEqual(TreeRow._transform_child_value(value4, leaf2, 'python'), 'None')
+        self.assertTrue(np.isnat(TreeRow._transform_child_value(value4, leaf3, 'numpy')))
+        self.assertEqual(TreeRow._transform_child_value(value4, leaf3, 'python'), '')
+
+    def test_transform_tree(self):
+        input_data_1 = {"l1-f": "120.9", "l1-s": 34, "l1-d": "2018-01-04",
+                        "f": {"l2-f": "-120.9", "l2-s": 'YES', "l2-a": ["2018-01-04"]}}
+        output_data_1_exp = {"l1-f": 120.9, "l1-s": "34", "l1-d": np.datetime64("2018-01-04"),
+                             "f": {"l2-f": -120.9, "l2-s": 'YES', "l2-a": [np.datetime64("2018-01-04")],
+                                   'l2-missing': 'nan'}}
+        fork_1 = ForkNode('base', [
+            ChildNode('l1-f', FloatDataType()),
+            ChildNode('l1-s', StringDataType()),
+            ChildNode('l1-d', DateDataType(resolution='D', format_string="%Y-%m-%d")),
+            ForkNode('f', [
+                ChildNode('l2-f', FloatDataType()),
+                ChildNode('l2-s', StringDataType()),
+                ChildNode('l2-a', ArrayDataType(DateDataType(resolution='D', format_string="%Y-%m-%d"))),
+                ChildNode('l2-missing', StringDataType())
+            ])
+        ])
+
+        tr = TreeRow(input_data_1)
+        self.assertEqual(tr.transform_tree(input_data_1, fork_1, 'numpy'), output_data_1_exp)
+
+        input_data_2 = {'f': {'float': 20}}
+        fork_2 = ForkNode('base', [ChildNode('f', FloatDataType())])
+
+        with self.assertRaises(RuntimeError):
+            tr = TreeRow(input_data_2)
+            tr.transform_tree(input_data_2, fork_2, 'numpy')
+
+        input_data_3 = {'f': 20}
+        fork_3 = ForkNode('base', [ForkNode('f', [ChildNode('float', FloatDataType())])])
+
+        with self.assertRaises(RuntimeError):
+            tr = TreeRow(input_data_3)
+            tr.transform_tree(input_data_3, fork_3, 'numpy')
+
+    def test_apply_schema(self):
+        # Case 1
+        input_data_1 = {"l1-f": "120.9", "l1-s": 34, "l1-d": "2018-01-04",
+                        "f": {"l2-f": "-120.9", "l2-s": 'YES', "l2-a": ["2018-01-04"]}}
+        output_data_1_exp = {"l1-f": 120.9, "l1-s": "34.0", "l1-d": np.datetime64("2018-01-04"),
+                             "f": {"l2-f": -120.9, "l2-s": 'YES', "l2-a": [np.datetime64("2018-01-04")],
+                                   'l2-missing': 'nan'}}
+        fork_1 = ForkNode('base', [
+            ChildNode('l1-f', FloatDataType()),
+            ChildNode('l1-s', StringDataType()),
+            ChildNode('l1-d', DateDataType(resolution='D', format_string="%Y-%m-%d")),
+            ForkNode('f', [
+                ChildNode('l2-f', FloatDataType()),
+                ChildNode('l2-s', StringDataType()),
+                ChildNode('l2-a', ArrayDataType(DateDataType(resolution='D', format_string="%Y-%m-%d"))),
+                ChildNode('l2-missing', StringDataType())
+            ])
+        ])
+
+        tr_1 = TreeRow(input_data_1)
+        schema_1 = TreeSchema(base_fork_node=fork_1)
+
+        assert tr_1.row is None
+        tr_1 = tr_1.build_row(input_data_1, 'numpy')
+
+        self.assertNotEqual(tr_1.row, output_data_1_exp)
+        self.assertNotEqual(tr_1.get_schema(), schema_1)
+        tr_1 = tr_1.set_schema(schema_1)
+        tr_1 = tr_1.apply_schema('numpy')
+        self.assertEqual(tr_1.row, output_data_1_exp)
+
+        # Case 2
+        input_data_2 = {'f': {'float': 20}}
+        fork_2 = ForkNode('base', [ChildNode('f', FloatDataType())])
+
+        tr_2 = TreeRow(input_data_2)
+        schema_2 = TreeSchema(base_fork_node=fork_2)
+
+        assert tr_2.row is None
+        tr_2 = tr_2.build_row(input_data_2, 'numpy')
+
+        self.assertNotEqual(tr_2.get_schema(), schema_2)
+
+        tr_2 = tr_2.set_schema(schema_2)
+        with self.assertRaises(RuntimeError):
+            tr_2.apply_schema('numpy')
+
+        # Case 3
+        input_data_3 = {'f': 20}
+        fork_3 = ForkNode('base', [ForkNode('f', [ChildNode('float', FloatDataType())])])
+
+        tr_3 = TreeRow(input_data_3)
+        schema_3 = TreeSchema(base_fork_node=fork_3)
+
+        assert tr_3.row is None
+        tr_3 = tr_3.build_row(input_data_3, 'numpy')
+
+        self.assertNotEqual(tr_3.get_schema(), schema_3)
+
+        tr_3 = tr_3.set_schema(schema_3)
+        with self.assertRaises(RuntimeError):
+            tr_3.apply_schema('numpy')
 
     def test__is_float(self):
         self.assertTrue(TreeRow._is_float(2))

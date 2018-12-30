@@ -120,6 +120,161 @@ class TreeRow(object):
             raise RuntimeError("Unknown method: '{}'".format(method))
 
     @staticmethod
+    def _assert_transformation_possible(input_children, base_fork):
+        """
+        Helper method which checks that the each name on the list of input names appears only once in the whole
+        forking branch.
+
+        :param input_children: Collection of names.
+        :param base_fork: Branch to investigate.
+
+        :type input_children: list(str)
+        :type base_fork: ForkNode
+
+        :raises: :class:`RuntimeError` in case the transformation is not possible.
+
+        :return: None
+        """
+        for input_data_child in input_children:
+            found_children = base_fork.find_child_in_any_branch(name=input_data_child, as_fork=False, as_copy=True)
+
+            if len(found_children) > 1:
+                raise RuntimeError(
+                    "Unable to transform input data to the new tree shape due to non-uniqueness of the node '{}'".
+                        format(input_data_child))
+
+    def _transform_fork_value(self, input_value, subfork, method):
+        """
+        Helper method which transforms the given input value by a given fork schema by the specified method.
+
+        :param input_value: Input data to be transformed.
+        :param subfork: Schema the transformed data should be following.
+        :param method: Specification of the method to use to build the output data, either ``'python'`` or ``'numpy'``.
+
+        :type input_value: dict or None
+        :type subfork: ForkNode
+        :type method: str
+
+        :raises: :class:`ValueError` in case the given method is unknown.
+
+        :return: Transformed input data to the given schema. In case of ``None`` in the input data, missing value will be given instead.
+        :rtype: dict
+        """
+        if input_value is not None:
+            return self.transform_tree(input_value, subfork, method)
+        else:
+            if method == 'numpy':
+                return subfork.get_data_type().build_numpy_value(subfork.get_data_type().numpy_na_value)
+            elif method == 'python':
+                return subfork.get_data_type().build_python_value(subfork.get_data_type().python_na_value)
+            else:
+                raise ValueError("Unknown method received '{}'.".format(method))
+
+    @staticmethod
+    def _transform_child_value(input_value, subleaf, method):
+        """
+        Helper method which transforms the given input value by a given leaf schema by the specified method.
+
+        :param input_value: Input data to be transformed.
+        :param subfork: Schema the transformed data should be following.
+        :param method: Specification of the method to use to build the output data, either ``'python'`` or ``'numpy'``.
+
+        :type input_value: any or None
+        :type subfork: ChildNode
+        :type method: str
+
+        :raises: :class:`ValueError` in case the given method is unknown.
+
+        :return: Transformed input data to the given schema. In case of ``None`` in the input data, missing value will be given instead.
+        :rtype: any
+        """
+        if method == 'numpy':
+            if input_value is not None:
+                return subleaf.get_data_type().build_numpy_value(input_value)
+            else:
+                return subleaf.get_data_type().build_numpy_value(subleaf.get_data_type().numpy_na_value)
+        elif method == 'python':
+            if input_value is not None:
+                return subleaf.get_data_type().build_python_value(input_value)
+            else:
+                return subleaf.get_data_type().build_python_value(subleaf.get_data_type().python_na_value)
+        else:
+            raise ValueError("Unknown method received '{}'.".format(method))
+
+    def transform_tree(self, input_data, base_fork, method):
+        """
+        This method transforms the input data into the wanted shape specified by the input fork.
+
+        :param input_data: Input data in a tree-like format.
+        :param base_fork: Specified schema via the fork node, which is to be followed and expected in the output transformation.
+        :param method: Specifies the method of transformation to the new schema, either ``'numpy'`` or ``'python'``.
+
+        :type input_data: dict
+        :type base_fork: ForkNode
+        :type method: str
+
+        :return: Input data transformed by the specified schema.
+        :rtype: dict
+        """
+        if not isinstance(input_data, dict):
+            raise ValueError("Input data are in the incorrect format!")
+
+        if not base_fork.is_fork():
+            raise ValueError("Input schema is not in the correct format!")
+
+        input_data_children = input_data.keys()
+        schema_children = base_fork.get_children_names()
+        output_data = {}
+
+        self._assert_transformation_possible(input_data_children, base_fork)
+
+        for schema_child in schema_children:
+            schema_child_node = base_fork.find_child(schema_child)
+
+            if schema_child in input_data_children:
+                input_data_value = input_data[schema_child]
+            else:
+                input_data_value = None
+
+            if schema_child_node.is_fork():
+                if not isinstance(input_data_value, dict) and input_data_value is not None:
+                    raise RuntimeError(
+                        "Unable to transform input data to the new tree shape, a single value cannot be transformed into a fork '{}'.".format(
+                            schema_child))
+
+                output_data[schema_child] = self._transform_fork_value(input_data_value, schema_child_node, method)
+
+            elif schema_child_node.is_child():
+                if isinstance(input_data_value, dict):
+                    raise RuntimeError(
+                        "Unable to transform input data to the new tree shape, cannot merge forked values into a single value '{}'".format(
+                            schema_child))
+
+                output_data[schema_child] = self._transform_child_value(input_data_value, schema_child_node, method)
+            else:
+                raise NotImplementedError("Applying new schema to a custom subclass of Node is not implemented.")
+
+        return output_data
+
+    def apply_schema(self, method='numpy'):
+        """
+        This method applies the schema set for the instance of the TreeRow and uses it to transform the input data
+        stored in the ``row`` attribute to the schema stored in the ``schema`` attribute.
+
+        :param method: Specifies the method of transformation to the new schema, either ``'numpy'`` or ``'python'``.
+        :type method: str
+
+        :return: The same instance of the TreeRow with input data reshaped by the current schema.
+        :rtype: TreeRow
+        """
+        if self.row is None:
+            raise AttributeError("The input data are missing! Cannot apply schema to missing data!")
+
+        self.row = self.transform_tree(self.row, self.get_schema().base_fork_node, method)
+
+        return self
+
+    @staticmethod
     def _is_float(n):
         """
         Helper method which determines whether an object is a float or not.
