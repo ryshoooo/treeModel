@@ -28,8 +28,20 @@ class TestTreeRow(TestCase):
     def test_build_row(self):
         tr = TreeRow({'foo': 12})
         self.assertTrue(tr.row is None)
-        tr.build_row({}, method='numpy')
+        tr.build_row({'foo': 1}, method='numpy')
         self.assertTrue(tr.row is not None)
+        self.assertEqual(tr.row, {'foo': 1})
+
+        tr = TreeRow({'foo': 12})
+        self.assertTrue(tr.row is None)
+        tr.build_row({'foo': 1}, method='python')
+        self.assertTrue(tr.row is not None)
+        self.assertEqual(tr.row, {'foo': 1})
+
+        tr = TreeRow({'foo': 12})
+        self.assertTrue(tr.row is None)
+        with self.assertRaises(RuntimeError):
+            tr.build_row({'foo': 1}, method='no')
 
     def test_get_schema(self):
         tr = TreeRow({'foo': "2018-01-01"})
@@ -41,8 +53,9 @@ class TestTreeRow(TestCase):
                 ChildNode(name='foo-new', data_type=DateDataType(resolution='D', format_string="%Y-%m-%d"))]))
         tr.set_schema(new_schema)
         self.assertTrue(isinstance(tr.get_schema(), TreeSchema))
-        self.assertTrue("foo" not in tr.get_schema().base_fork_node.get_children_names())
-        self.assertTrue("foo-new" in tr.get_schema().base_fork_node.get_children_names())
+        self.assertNotIn("foo", tr.get_schema().base_fork_node.get_children_names())
+        self.assertIn("foo-new", tr.get_schema().base_fork_node.get_children_names())
+        self.assertEqual(tr.get_schema(), new_schema)
 
     def test_set_schema(self):
         tr = TreeRow({'foo': "2018-01-01"})
@@ -57,30 +70,73 @@ class TestTreeRow(TestCase):
         # Case 1
         input_row = {'foo': "2018-01-01"}
         tr = TreeRow(input_row)
-        output_row = tr.build_tree(input_row, method='numpy')
 
+        output_row = tr.build_tree(input_row, method='numpy')
         self.assertEqual(input_row, output_row)
+
+        output_row = tr.build_tree(input_row, method='python')
+        self.assertEqual(input_row, output_row)
+
+        with self.assertRaises(RuntimeError):
+            tr.build_tree(input_row, method='no')
 
         # Case 2
         input_row = {'foo': "2018-01-01", 'foo2': [1, 2, 3]}
         tr = TreeRow(input_row)
-        output_row = tr.build_tree(input_row, method='numpy')
 
+        output_row = tr.build_tree(input_row, method='numpy')
         self.assertEqual(input_row['foo'], output_row['foo'])
         self.assertTrue((input_row['foo2'] == output_row['foo2']).all())
+
+        output_row = tr.build_tree(input_row, method='python')
+        self.assertEqual(input_row['foo'], output_row['foo'])
+        self.assertTrue((input_row['foo2'] == output_row['foo2']))
+
+        with self.assertRaises(RuntimeError):
+            tr.build_tree(input_row, method='no')
+
+        output_row = tr.build_tree({'foo': "something"}, method='python')
+        self.assertEqual("something", output_row['foo'])
+        self.assertEqual(len(output_row['foo2']), 0)
 
         # Case 3
         input_row = {"level1-float": 12.2,
                      "level1-list": ["s", 2],
                      'level1-fork': {'level2-string': 'wrq2',
                                      'level2-array': [{"array_tree_0": 0, "array_tree_1": "sd"}, {"b": 1}]},
-                     "level1": "OK"}
+                     "level1": "OK",
+                     "level1-array": [1, 2, 3, 4]}
         tr = TreeRow(input_row)
-        output_row = tr.build_tree(input_row, method='numpy')
 
+        output_row = tr.build_tree(input_row, method='numpy')
         self.assertEqual(input_row['level1-float'], output_row['level1-float'])
         self.assertEqual(input_row['level1'], output_row['level1'])
         self.assertEqual(input_row['level1-list'], list(output_row['level1-list'][0]))
+        self.assertEqual(input_row['level1-fork']['level2-string'], output_row['level1-fork']['level2-string'])
+        self.assertEqual(output_row['level1-fork']['level2-array']['0'][0], {"array_tree_0": 0, "array_tree_1": "sd"})
+        self.assertEqual(output_row['level1-fork']['level2-array']['1'][0], {"b": 1})
+
+        output_row = tr.build_tree(input_row, method='python')
+        self.assertEqual(input_row['level1-float'], output_row['level1-float'])
+        self.assertEqual(input_row['level1'], output_row['level1'])
+        self.assertEqual(input_row['level1-list'], output_row['level1-list'])
+        self.assertEqual(input_row['level1-fork']['level2-string'], output_row['level1-fork']['level2-string'])
+        self.assertEqual(output_row['level1-fork']['level2-array'][0], {"array_tree_0": 0, "array_tree_1": "sd"})
+        self.assertEqual(output_row['level1-fork']['level2-array'][1], {"b": 1})
+
+        out_python = tr.build_tree({}, 'python')
+        exp_out_python = {'level1': 'None', 'level1-array': [], 'level1-float': None,
+                          'level1-fork': {'level2-array': [{'array_tree_0': None, 'array_tree_1': 'None'}, {'b': None}],
+                                          'level2-string': 'None'}, 'level1-list': ['None', None]}
+        self.assertEqual(out_python, exp_out_python)
+        out_numpy = str(tr.build_tree({}, 'numpy'))
+        exp_out_numpy = str({'level1': 'nan', 'level1-array': np.array([], dtype=np.float64), 'level1-float': np.nan,
+                             'level1-fork': {
+                                 'level2-array': np.array(
+                                     [({'array_tree_0': np.nan, 'array_tree_1': 'nan'}, {'b': np.nan})],
+                                     dtype=[('0', 'O'), ('1', 'O')]), 'level2-string': 'nan'},
+                             'level1-list': np.array([('nan', np.nan)], dtype=[('0', '<U128'), ('1', '<f8')])})
+        self.assertEqual(out_numpy, exp_out_numpy)
 
     def test__assert_transformation_possible(self):
         fork1 = ForkNode('base', [ChildNode('c1', StringDataType()), ChildNode('c2', FloatDataType()),
@@ -293,11 +349,14 @@ class TestTreeRow(TestCase):
         self.assertTrue(isinstance(fork_out.find_child('foo2').get_data_type(), TreeDataType))
         self.assertTrue(isinstance(fork_out.find_child('foo2').find_child('arr').get_data_type(), ListDataType))
 
+        # Case 3
+        self.assertEqual(tr._infer_fork_type({}, 'base', 1), ForkNode('base', []))
+        self.assertNotEqual(tr._infer_fork_type({}, 'base', 2), ForkNode('base', []))
+
     def test_infer_schema(self):
         input_dict, expected_output = DataGenerator.sample_dict_for_test_schema_v1()
-
         tr = TreeRow(input_dict)
-        self.assertEqual(str(expected_output), str(tr.infer_schema(input_dict)))
+        self.assertEqual(expected_output, tr.infer_schema(input_dict))
 
 
 class TreeDataSetTestCase(TestCase):
