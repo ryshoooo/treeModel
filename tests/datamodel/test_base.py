@@ -3,6 +3,7 @@ import os
 import numpy as np
 import json
 from copy import copy
+from datetime import datetime
 
 import tests.datamodel.testdata as td
 from tests.datamodel.testdata.data_repo import DataGenerator
@@ -80,6 +81,58 @@ class TestTreeRow(TestCase):
         self.assertEqual(input_row['level1-float'], output_row['level1-float'])
         self.assertEqual(input_row['level1'], output_row['level1'])
         self.assertEqual(input_row['level1-list'], list(output_row['level1-list'][0]))
+
+    def test__assert_transformation_possible(self):
+        fork1 = ForkNode('base', [ChildNode('c1', StringDataType()), ChildNode('c2', FloatDataType()),
+                                  ForkNode('f1', [ChildNode('c2', DateDataType())])])
+
+        with self.assertRaises(RuntimeError):
+            TreeRow._assert_transformation_possible(['c2'], fork1)
+        with self.assertRaises(RuntimeError):
+            TreeRow._assert_transformation_possible(['c1', 'c2'], fork1)
+        with self.assertRaises(RuntimeError):
+            TreeRow._assert_transformation_possible(['f1', 'c1', 'c2'], fork1)
+
+        TreeRow._assert_transformation_possible(['c1'], fork1)
+        TreeRow._assert_transformation_possible(['c1', 'f1'], fork1)
+
+    def test__transform_child_value(self):
+        # Case 1
+        value1 = '120.28'
+        leaf1 = ChildNode('case1', FloatDataType())
+
+        self.assertEqual(float(value1), TreeRow._transform_child_value(value1, leaf1, 'numpy'))
+        self.assertEqual(float(value1), TreeRow._transform_child_value(value1, leaf1, 'python'))
+        with self.assertRaises(ValueError):
+            TreeRow._transform_child_value(value1, leaf1, 'no')
+
+        # Case 2
+        value2 = 40
+        leaf2 = ChildNode('case2', StringDataType())
+
+        self.assertEqual(str(value2), TreeRow._transform_child_value(value2, leaf2, 'numpy'))
+        self.assertEqual(str(value2), TreeRow._transform_child_value(value2, leaf2, 'python'))
+        with self.assertRaises(ValueError):
+            TreeRow._transform_child_value(value2, leaf2, 'no')
+
+        # Case 3
+        value3 = '2018-01-04'
+        leaf3 = ChildNode('case3', DateDataType(resolution='D', format_string="%Y-%m-%d"))
+
+        self.assertEqual(np.datetime64(value3), TreeRow._transform_child_value(value3, leaf3, 'numpy'))
+        self.assertEqual(datetime.strptime(value3, "%Y-%m-%d"), TreeRow._transform_child_value(value3, leaf3, 'python'))
+        with self.assertRaises(ValueError):
+            TreeRow._transform_child_value(value3, leaf3, 'no')
+
+        # Case 4
+        value4 = None
+
+        self.assertTrue(np.isnan(TreeRow._transform_child_value(value4, leaf1, 'numpy')))
+        self.assertTrue(TreeRow._transform_child_value(value4, leaf1, 'python') is None)
+        self.assertEqual(TreeRow._transform_child_value(value4, leaf2, 'numpy'), 'nan')
+        self.assertEqual(TreeRow._transform_child_value(value4, leaf2, 'python'), 'None')
+        self.assertTrue(np.isnat(TreeRow._transform_child_value(value4, leaf3, 'numpy')))
+        self.assertEqual(TreeRow._transform_child_value(value4, leaf3, 'python'), '')
 
     def test__is_float(self):
         self.assertTrue(TreeRow._is_float(2))
