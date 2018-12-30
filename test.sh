@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # This simple script runs unittests on all Python major versions 3.4 and higher
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 OLD_PYTHONPATH=$PYTHONPATH
 PYTHONPATH=$OLD_PYTHONPATH:$DIR

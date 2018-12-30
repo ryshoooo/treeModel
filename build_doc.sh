@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# This simple script creates sphinx documentation for the treemodel library.
+# The HTML files can be found afterwards in the directory `_docs_build`
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 echo "Creating conda virtual documentation environment"
