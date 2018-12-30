@@ -387,7 +387,9 @@ class TreeDataSet(object):
     :type method: str
 
     :ivar data: Collection of the input data already in the transformed format of the :class:`treemodel.datamodel.base.TreeRow` object.
+    :ivar method: Specifies the method to build each row, either ``'python'`` or ``'numpy'``.
     :vartype data: np.ndarray(TreeRow)
+    :vartype method: str
     """
 
     def __init__(self, input_rows, schema=None, method='numpy'):
@@ -403,6 +405,8 @@ class TreeDataSet(object):
 
         if method not in ['numpy', 'python']:
             raise ValueError("Unknown input method: '{}'".format(method))
+
+        self.method = method
 
         if schema is None or isinstance(schema, TreeSchema):
             self.data = np.array([self._get_tree_row(input_row=row, schema=schema, method=method)
@@ -438,10 +442,10 @@ class TreeDataSet(object):
             else:
                 raise AttributeError("Input schema parameter is not a TreeSchema object!")
 
-    def uniformize_schema(self, method='fixed', schema=None):
+    def uniformize_schema(self, method='fixed', schema=None, apply_schema=False):
         """
         Finds and sets a uniformized version of the schema for each row of the ``TreeDataSet``.
-        The uniformized version can be found via 2 methods:
+        The uniformized version can be found via 3 methods:
             - ``'intersection'``: Performs a schema intersection over all of the schemas of each row.
             - ``'union'``: Performs a schema union over all of the schemas of each each row.
             - ``'fixed'``: Sets a given schema on each row.
@@ -449,9 +453,11 @@ class TreeDataSet(object):
 
         :param method: Specifies the method of uniformization. Currently only ``'intersection'``, ``'union'`` and ``'fixed'`` are supported. With value ``'fixed'`` additional parameter ```schema``` has to be specified.
         :param schema: Specifies the schema to be set in case of the ``'fixed'`` method on each row.
+        :param apply_schema: ``True`` or ``False`` specifying whether the new uniformized schema should be automatically applied to the underlying tree data.
 
         :type method: str
         :type schema: TreeSchema or None
+        :type apply_schema: bool
 
         :raises: :class:`ValueError` in case the method is unknown or in case the parameter schema is missing for method ``'fixed'``.
 
@@ -461,20 +467,34 @@ class TreeDataSet(object):
         if method == 'intersection':
             schema_arr = np.apply_along_axis(lambda x: x[0].get_schema(), 0, self.data.reshape((1, -1)))
             schema_res = np.multiply.reduce(schema_arr, 0)
-            self.data = np.apply_along_axis(lambda x: x[0].set_schema(schema_res), 0, self.data.reshape((1, -1)))
+
+            if apply_schema:
+                self.data = np.apply_along_axis(lambda x: x[0].set_schema(schema_res).apply_schema(self.method), 0,
+                                                self.data.reshape((1, -1)))
+            else:
+                self.data = np.apply_along_axis(lambda x: x[0].set_schema(schema_res), 0, self.data.reshape((1, -1)))
 
             return self
         elif method == 'union':
             schema_arr = np.apply_along_axis(lambda x: x[0].get_schema(), 0, self.data.reshape((1, -1)))
             schema_res = np.add.reduce(schema_arr, 0)
-            self.data = np.apply_along_axis(lambda x: x[0].set_schema(schema_res), 0, self.data.reshape((1, -1)))
+
+            if apply_schema:
+                self.data = np.apply_along_axis(lambda x: x[0].set_schema(schema_res).apply_schema(self.method), 0,
+                                                self.data.reshape((1, -1)))
+            else:
+                self.data = np.apply_along_axis(lambda x: x[0].set_schema(schema_res), 0, self.data.reshape((1, -1)))
 
             return self
         elif method == 'fixed':
             if schema is None:
                 raise ValueError("Parameter 'schema' is missing for method 'fixed'.")
 
-            self.data = np.apply_along_axis(lambda x: x[0].set_schema(schema), 0, self.data.reshape((1, -1)))
+            if apply_schema:
+                self.data = np.apply_along_axis(lambda x: x[0].set_schema(schema).apply_schema(), 0,
+                                                self.data.reshape((1, -1)))
+            else:
+                self.data = np.apply_along_axis(lambda x: x[0].set_schema(schema), 0, self.data.reshape((1, -1)))
 
             return self
         else:
