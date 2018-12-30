@@ -237,7 +237,7 @@ class TreeRow(object):
                 input_data_value = None
 
             if schema_child_node.is_fork():
-                if not isinstance(input_data_value, dict) or input_data_value is not None:
+                if not isinstance(input_data_value, dict) and input_data_value is not None:
                     raise RuntimeError(
                         "Unable to transform input data to the new tree shape, a single value cannot be transformed into a fork '{}'.".format(
                             schema_child))
