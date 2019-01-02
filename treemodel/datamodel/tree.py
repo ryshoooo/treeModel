@@ -479,9 +479,12 @@ class ForkNode(Node):
             warn("{} does not equal in name to {} in a fork!".format(self.get_name(), other.get_name()), UserWarning)
             return False
         else:
-            return all(
-                [child == other.find_child(child.get_name()) if child.get_name() in other.get_children_names() else
-                 False for child in self.get_children()] + [self.level == other.level])
+            try:
+                return all([child == other.find_child(child.get_name()) for child in self.get_children()] +
+                           [self.level == other.level]) \
+                       and all([child == self.find_child(child.get_name()) for child in other.get_children()])
+            except RuntimeError:
+                return False
 
     def __mul__(self, other, _iter=1):
         """
@@ -531,8 +534,8 @@ class ForkNode(Node):
                     raise RuntimeError(
                         "Cannot merge 2 forks with children of the same name! '{}'".format(child.get_name()))
 
-                # If there are none found, continue with the next child
-                if not found_children:
+                # If there are none found and we have a leaf, continue with the next child
+                if not found_children and child.is_child():
                     continue
 
                 # Now we are in the case where only 1 child was found. However it does not have to be a direct child
@@ -650,10 +653,13 @@ class ForkNode(Node):
                 # Otherwise the found child in other is not a direct child of the root, therefore perform union
                 # on the current child and the fork leading to the child in the other subbranch. Append the result
                 # to the children list.
-                other_fork_path = other.find_child_in_any_branch(child.get_name(), as_fork=True)
-                assert len(other_fork_path.get_children()) == 1
+                other_forks = [other_child for other_child in other.get_children() if other_child.is_fork()]
+                potentials = [other_fork for other_fork in other_forks if
+                              other_fork.find_child_in_any_branch(child.get_name())]
+                assert len(potentials) == 1
+                other_fork_path = potentials[0]
 
-                children.append(child + other_fork_path.get_children()[0])
+                children.append(child + other_fork_path)
 
             # Get the names of all the children we have already unioned from self
             union_children_names = [x.get_name() for x in children]
@@ -674,7 +680,7 @@ class ForkNode(Node):
                 children.append(deepcopy(other_child))
 
             # Finally return the unioned fork node
-            return ForkNode(name=self.get_name(), children=children, level=self.level)
+            return ForkNode(name=self.get_name(), children=children, level=max(self.level, other.level))
 
         # In case there are no found subbranches from the other fork
         if not found_branches:
@@ -706,13 +712,16 @@ class ForkNode(Node):
                     children.append(other_child + self)
                 else:
                     children.append(deepcopy(other_child))
-
-            # Otherwise we now know that other_child is a ForkNode, therefore if there is any subbranch of this fork
+            # Now we are in the case where the other child is a fork. If it shares the same name as we do, perform
+            # the union and append as a new child to the children's list.
+            elif other_child.get_name() == self.get_name():
+                children.append(self + other_child)
+            # Otherwise we now know that other_child is a ForkNode and that there has to be a subbranch carrying the
+            # same name as we do, therefore if there is any subbranch of this fork
             # node, which carries the same name as self node does, union them together and append the result to the
             # children list.
             elif other_child.find_child_in_any_branch(self.get_name()):
                 children.append(self + other_child.find_child_in_any_branch(self.get_name(), as_fork=True))
-
             # Otherwise just append the child to the children list.
             else:
                 children.append(deepcopy(other_child))
@@ -770,11 +779,8 @@ class ChildNode(Node):
         if self.get_name() != other.get_name():
             warn("{} does not equal in name to {} in a child!".format(self.get_name(), other.get_name()), UserWarning)
             return False
-        elif self.get_data_type() != other.get_data_type():
-            warn("{}'s data types are different".format(self.get_name()), UserWarning)
-            return False
         else:
-            return True
+            return self.get_data_type() == other.get_data_type()
 
     def __mul__(self, other):
         """
@@ -889,10 +895,10 @@ class ChildNode(Node):
             # Otherwise it is a child node so find the higher one and return the fork with path to the child
             else:
                 if self <= found_child:
-                    return other.find_child_in_any_branch(self.get_name(), as_fork=True)
+                    return deepcopy(other)
                 elif self >= found_child:
                     found_child.set_data_type(self.get_data_type())
-                    return other.find_child_in_any_branch(self.get_name(), as_fork=True)
+                    return deepcopy(other)
 
                 # In case they are incomparable, raise exception (union is not possible)
                 else:

@@ -445,8 +445,20 @@ class TestTreeDataSet(TreeDataSetTestCase):
     def test___init__(self):
         # Same schema
         tds = TreeDataSet(input_rows=self.get_json_data_same_schema())
-        first, *rest = [x.schema for x in tds.data]
+        first, *rest = [x.get_schema() for x in tds.data]
         self.assertTrue(all([first == x for x in rest]))
+
+        # Different schemas
+        row1 = {"float1": 20.3, 'fork': {'float2': 20.3}}
+        row2 = {"float1": "as", 'fork': {'float2': "2ms"}}
+
+        tds = TreeDataSet(input_rows=[row1, row2])
+
+        self.assertNotEqual(tds.data[0].get_schema(), tds.data[1].get_schema())
+        self.assertEqual(tds.data[0].get_schema().find_data_type('float1'), FloatDataType())
+        self.assertEqual(tds.data[0].get_schema().find_data_type('fork/float2'), FloatDataType())
+        self.assertEqual(tds.data[1].get_schema().find_data_type('float1'), StringDataType())
+        self.assertEqual(tds.data[1].get_schema().find_data_type('fork/float2'), StringDataType())
 
     def test__get_tree_row(self):
         data = self.get_json_data_same_schema()[0]
@@ -501,6 +513,27 @@ class TestTreeDataSet(TreeDataSetTestCase):
         self._assert_equal_dictionaries(data, tr.row)
 
     def test_uniformize_intersection(self):
+        # Case 1
         tds = TreeDataSet(input_rows=self.get_json_data_same_schema())
+        first, *rest = [x.get_schema() for x in tds.data]
 
-        tds_after = copy(tds).uniformize_schema('intersection')
+        self.assertTrue(all([first == x for x in rest]))
+
+        tds = tds.uniformize_schema('intersection', apply_schema=True)
+        first, *rest = [x.get_schema() for x in tds.data]
+
+        self.assertTrue(all([first == x for x in rest]))
+
+        # Case 2
+        row1 = {'foo2': [22]}
+        row2 = {'foo': ["string"]}
+        tds = TreeDataSet([row1, row2])
+        print(tds.data[0].get_schema())
+        print(tds.data[1].get_schema())
+        print(tds.data[0].row)
+        print(tds.data[1].row)
+
+        tds = tds.uniformize_schema('union', apply_schema=True)
+        print(tds.data[0].get_schema())
+        print(tds.data[0].row)
+        print(tds.data[1].row)

@@ -442,6 +442,27 @@ class TreeDataSet(object):
             else:
                 raise AttributeError("Input schema parameter is not a TreeSchema object!")
 
+    def set_schema(self, schema):
+        """
+        This method sets the input schema to the TreeRow data in the dataset. Can be either a list of schemas,
+        which will be set for each row accordingly or can be a single schema which will be applied to each row.
+
+        :param schema: The wanted schema to be set for each row.
+        :type schema: list(TreeSchema) or TreeSchema
+
+        :return: The same instance of the TreeDataSet with newly applied schema tree rows.
+        :rtype: TreeDataSet
+        """
+        if isinstance(schema, list):
+            schema = np.array(schema).reshape((1, -1))
+            df = np.concatenate([self.data.reshape((1, -1)), schema])
+            self.data = np.apply_along_axis(lambda x: x[0].set_schema(x[1]).apply_schema(self.method), 0, df)
+        else:
+            self.data = np.apply_along_axis(lambda x: x[0].set_schema(schema).apply_schema(self.method), 0,
+                                            self.data.reshape((1, -1)))
+
+        return self
+
     def uniformize_schema(self, method='fixed', schema=None, apply_schema=False):
         """
         Finds and sets a uniformized version of the schema for each row of the ``TreeDataSet``.
@@ -469,19 +490,16 @@ class TreeDataSet(object):
             schema_res = np.multiply.reduce(schema_arr, 0)
 
             if apply_schema:
-                self.data = np.apply_along_axis(lambda x: x[0].set_schema(schema_res).apply_schema(self.method), 0,
-                                                self.data.reshape((1, -1)))
+                return self.set_schema(schema_res)
             else:
                 self.data = np.apply_along_axis(lambda x: x[0].set_schema(schema_res), 0, self.data.reshape((1, -1)))
-
-            return self
+                return self
         elif method == 'union':
             schema_arr = np.apply_along_axis(lambda x: x[0].get_schema(), 0, self.data.reshape((1, -1)))
             schema_res = np.add.reduce(schema_arr, 0)
 
             if apply_schema:
-                self.data = np.apply_along_axis(lambda x: x[0].set_schema(schema_res).apply_schema(self.method), 0,
-                                                self.data.reshape((1, -1)))
+                return self.set_schema(schema_res)
             else:
                 self.data = np.apply_along_axis(lambda x: x[0].set_schema(schema_res), 0, self.data.reshape((1, -1)))
 
@@ -491,8 +509,7 @@ class TreeDataSet(object):
                 raise ValueError("Parameter 'schema' is missing for method 'fixed'.")
 
             if apply_schema:
-                self.data = np.apply_along_axis(lambda x: x[0].set_schema(schema).apply_schema(), 0,
-                                                self.data.reshape((1, -1)))
+                return self.set_schema(schema)
             else:
                 self.data = np.apply_along_axis(lambda x: x[0].set_schema(schema), 0, self.data.reshape((1, -1)))
 

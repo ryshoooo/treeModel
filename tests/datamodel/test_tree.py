@@ -932,7 +932,7 @@ class TestForkNode(TestCase):
                     'A',
                     [
                         ChildNode('B', StringDataType()),
-                        ChildNode('C', StringDataType()),
+                        ChildNode('C', FloatDataType()),
                         ChildNode('E', StringDataType())
                     ],
                     2
